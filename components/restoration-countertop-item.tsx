@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { X } from "lucide-react"
+import { CoatingTooltip } from "./coating-tooltip"
 
 interface RestorationCountertopItemProps {
   countertop: any
@@ -19,7 +20,7 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
   const calculatePrice = () => {
     const length = Number.parseFloat(countertop.length) || 0
     const width = Number.parseFloat(countertop.width) || 0
-    const area = (length * width) / 1000000 // convert mm² to m²
+    const area = (length * width) / 1000000
 
     if (area === 0) return 0
 
@@ -34,17 +35,17 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
       totalPrice += 4000 * area
     }
 
-    return totalPrice
+    return Math.round(totalPrice)
   }
 
   const price = calculatePrice()
 
   return (
-    <Card className="p-4 bg-secondary/30 relative">
+    <Card className="p-4 bg-secondary/30 relative transition-all duration-200 hover:shadow-md">
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8"
+        className="absolute top-2 right-2 h-8 w-8 transition-colors"
         onClick={() => onRemove(countertop.id)}
       >
         <X className="h-4 w-4" />
@@ -70,6 +71,7 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
               placeholder="1000"
               value={countertop.length}
               onChange={(e) => onUpdate(countertop.id, { length: e.target.value })}
+              className="transition-colors"
             />
           </div>
 
@@ -81,6 +83,7 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
               placeholder="600"
               value={countertop.width}
               onChange={(e) => onUpdate(countertop.id, { width: e.target.value })}
+              className="transition-colors"
             />
           </div>
         </div>
@@ -111,14 +114,16 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
           <RadioGroup value={countertop.coating} onValueChange={(value) => onUpdate(countertop.id, { coating: value })}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="oil" id={`oil-${countertop.id}`} />
-              <Label htmlFor={`oil-${countertop.id}`} className="font-normal cursor-pointer">
+              <Label htmlFor={`oil-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
                 Масло Osmo TopOil (включено)
+                <CoatingTooltip type="oil" />
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lacquer" id={`lacquer-${countertop.id}`} />
-              <Label htmlFor={`lacquer-${countertop.id}`} className="font-normal cursor-pointer">
+              <Label htmlFor={`lacquer-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
                 2К акриловый лак (+4 000 ₽/м²)
+                <CoatingTooltip type="lacquer" />
               </Label>
             </div>
           </RadioGroup>

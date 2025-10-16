@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { X } from "lucide-react"
+import { X, AlertCircle } from "lucide-react"
+import { CoatingTooltip } from "./coating-tooltip"
 
 interface NewCountertopItemProps {
   countertop: any
@@ -18,13 +19,21 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
   const calculatePrice = () => {
     const length = Number.parseFloat(countertop.length) || 0
     const width = Number.parseFloat(countertop.width) || 0
-    const area = (length * width) / 1000000 // convert mm² to m²
+    const area = (length * width) / 1000000
 
     if (area === 0) return 0
 
     let basePrice = 0
+    let widthExtraCharge = 0
 
     if (countertop.type === "solid-lamella") {
+      // Check if width exceeds 600mm
+      if (width > 600) {
+        const extraWidth = width - 600
+        const extra50mmSegments = Math.ceil(extraWidth / 50)
+        widthExtraCharge = extra50mmSegments * 1000
+      }
+
       if (countertop.thickness === "40") {
         if (length >= 900 && length <= 2150) {
           basePrice = 29640
@@ -33,10 +42,9 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
         } else if (length >= 2951 && length <= 3500) {
           basePrice = 33791
         } else {
-          basePrice = 29640 // default to lowest tier
+          basePrice = 29640
         }
       } else {
-        // 20mm
         if (length >= 900 && length <= 2150) {
           basePrice = 22990
         } else if (length >= 2151 && length <= 2950) {
@@ -44,15 +52,14 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
         } else if (length >= 2951 && length <= 3500) {
           basePrice = 25811
         } else {
-          basePrice = 22990 // default to lowest tier
+          basePrice = 22990
         }
       }
     } else {
-      // spliced
       basePrice = countertop.thickness === "40" ? 21793 : 19979
     }
 
-    let totalPrice = basePrice * area
+    let totalPrice = basePrice * area + widthExtraCharge
 
     if (countertop.coating === "lacquer") {
       totalPrice += 4000 * area
@@ -63,6 +70,9 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
 
   const price = calculatePrice()
   const length = Number.parseFloat(countertop.length) || 0
+  const width = Number.parseFloat(countertop.width) || 0
+
+  const showWidthWarning = countertop.type === "solid-lamella" && width > 600
 
   const getSolidLamellaPriceDisplay = () => {
     if (countertop.thickness === "40") {
@@ -91,11 +101,11 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
   }
 
   return (
-    <Card className="p-4 bg-secondary/30 relative">
+    <Card className="p-4 bg-secondary/30 relative transition-all duration-200 hover:shadow-md">
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8"
+        className="absolute top-2 right-2 h-8 w-8 transition-colors"
         onClick={() => onRemove(countertop.id)}
       >
         <X className="h-4 w-4" />
@@ -121,6 +131,7 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
               placeholder="1000"
               value={countertop.length}
               onChange={(e) => onUpdate(countertop.id, { length: e.target.value })}
+              className="transition-colors"
             />
           </div>
 
@@ -132,7 +143,14 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
               placeholder="600"
               value={countertop.width}
               onChange={(e) => onUpdate(countertop.id, { width: e.target.value })}
+              className={`transition-colors ${showWidthWarning ? "border-amber-500" : ""}`}
             />
+            {showWidthWarning && (
+              <div className="flex items-start gap-2 text-xs text-amber-600 dark:text-amber-500 mt-1">
+                <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Ширина превышает стандарт 600мм. Доплата +1000₽ за каждые 50мм</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -182,14 +200,16 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
           <RadioGroup value={countertop.coating} onValueChange={(value) => onUpdate(countertop.id, { coating: value })}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="oil" id={`new-oil-${countertop.id}`} />
-              <Label htmlFor={`new-oil-${countertop.id}`} className="font-normal cursor-pointer">
+              <Label htmlFor={`new-oil-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
                 Масло Osmo TopOil (включено)
+                <CoatingTooltip type="oil" />
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lacquer" id={`new-lacquer-${countertop.id}`} />
-              <Label htmlFor={`new-lacquer-${countertop.id}`} className="font-normal cursor-pointer">
+              <Label htmlFor={`new-lacquer-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
                 2К акриловый лак (+4 000 ₽/м²)
+                <CoatingTooltip type="lacquer" />
               </Label>
             </div>
           </RadioGroup>
