@@ -23,11 +23,12 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
 
     if (area === 0) return 0
 
+    const roundedLength = Math.ceil(length / 100) * 100
+
     let basePrice = 0
     let widthExtraCharge = 0
 
     if (countertop.type === "solid-lamella") {
-      // Check if width exceeds 600mm
       if (width > 600) {
         const extraWidth = width - 600
         const extra50mmSegments = Math.ceil(extraWidth / 50)
@@ -35,21 +36,21 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
       }
 
       if (countertop.thickness === "40") {
-        if (length >= 900 && length <= 2150) {
+        if (roundedLength >= 900 && roundedLength <= 2150) {
           basePrice = 29640
-        } else if (length >= 2151 && length <= 2950) {
+        } else if (roundedLength >= 2151 && roundedLength <= 2950) {
           basePrice = 32490
-        } else if (length >= 2951 && length <= 3500) {
+        } else if (roundedLength >= 2951 && roundedLength <= 3500) {
           basePrice = 33791
         } else {
           basePrice = 29640
         }
       } else {
-        if (length >= 900 && length <= 2150) {
+        if (roundedLength >= 900 && roundedLength <= 2150) {
           basePrice = 22990
-        } else if (length >= 2151 && length <= 2950) {
+        } else if (roundedLength >= 2151 && roundedLength <= 2950) {
           basePrice = 24282
-        } else if (length >= 2951 && length <= 3500) {
+        } else if (roundedLength >= 2951 && roundedLength <= 3500) {
           basePrice = 25811
         } else {
           basePrice = 22990

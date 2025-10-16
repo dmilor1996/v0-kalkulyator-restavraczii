@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Copy, Download } from "lucide-react"
+import { Copy, Download, Save } from "lucide-react"
 import { useState, useEffect } from "react"
 import { saveCalculation } from "@/lib/storage"
 
@@ -15,6 +15,7 @@ interface TotalSummaryProps {
 export function TotalSummary({ restorationCountertops, newCountertops }: TotalSummaryProps) {
   const [copied, setCopied] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -48,6 +49,8 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
 
     if (area === 0) return 0
 
+    const roundedLength = Math.ceil(length / 100) * 100
+
     let basePrice = 0
     let widthExtraCharge = 0
 
@@ -59,21 +62,21 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
       }
 
       if (countertop.thickness === "40") {
-        if (length >= 900 && length <= 2150) {
+        if (roundedLength >= 900 && roundedLength <= 2150) {
           basePrice = 29640
-        } else if (length >= 2151 && length <= 2950) {
+        } else if (roundedLength >= 2151 && roundedLength <= 2950) {
           basePrice = 32490
-        } else if (length >= 2951 && length <= 3500) {
+        } else if (roundedLength >= 2951 && roundedLength <= 3500) {
           basePrice = 33791
         } else {
           basePrice = 29640
         }
       } else {
-        if (length >= 900 && length <= 2150) {
+        if (roundedLength >= 900 && roundedLength <= 2150) {
           basePrice = 22990
-        } else if (length >= 2151 && length <= 2950) {
+        } else if (roundedLength >= 2151 && roundedLength <= 2950) {
           basePrice = 24282
-        } else if (length >= 2951 && length <= 3500) {
+        } else if (roundedLength >= 2951 && roundedLength <= 3500) {
           basePrice = 25811
         } else {
           basePrice = 22990
@@ -128,7 +131,7 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
 
   const generateReport = () => {
     let report = "РАСЧЕТ СТОИМОСТИ СТОЛЕШНИЦ\n"
-    report += "=".repeat(40) + "\n\n"
+    report += "=".repeat(50) + "\n\n"
 
     if (restorationCountertops.length > 0) {
       report += "РЕСТАВРАЦИЯ:\n"
@@ -138,13 +141,13 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
         const area = (length * width) / 1000000
         const price = calculateRestorationPrice(c)
 
-        report += `${idx + 1}. ${length}×${width}мм (${area.toFixed(2)}м²) | `
-        report += `${c.material === "solid" ? "Массив" : "Шпон"} | `
-        report += `${c.coating === "oil" ? "Масло" : "Лак"}`
+        report += `${idx + 1}. ${length}×${width}мм (${area.toFixed(2)}м²)\n`
+        report += `   ${c.material === "solid" ? "Массив" : "Шпон"} | `
+        report += `${c.coating === "oil" ? "Масло Osmo" : "2К Лак"}`
         if (c.milling) report += ` | Фрезеровка`
-        report += ` → ${price.toLocaleString("ru-RU")}₽\n`
+        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")}₽\n\n`
       })
-      report += `Итого: ${restorationTotal.toLocaleString("ru-RU")}₽\n\n`
+      report += `Итого реставрация: ${restorationTotal.toLocaleString("ru-RU")}₽\n\n`
     }
 
     if (newCountertops.length > 0) {
@@ -155,23 +158,27 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
         const area = (length * width) / 1000000
         const price = calculateNewPrice(c)
 
-        report += `${idx + 1}. ${length}×${width}мм (${area.toFixed(2)}м²) | `
-        report += `${c.thickness}мм | `
+        report += `${idx + 1}. ${length}×${width}мм (${area.toFixed(2)}м²)\n`
+        report += `   ${c.thickness}мм | `
         report += `${c.type === "solid-lamella" ? "Цельноламельная" : "Сращенная"} | `
-        report += `${c.coating === "oil" ? "Масло" : "Лак"}`
-        report += ` → ${price.toLocaleString("ru-RU")}₽\n`
+        report += `${c.coating === "oil" ? "Масло Osmo" : "2К Лак"}`
+        if (c.type === "solid-lamella" && width > 600) {
+          report += `\n   Доплата за ширину >600мм`
+        }
+        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")}₽\n\n`
       })
-      report += `Итого: ${newTotal.toLocaleString("ru-RU")}₽\n\n`
+      report += `Итого изготовление: ${newTotal.toLocaleString("ru-RU")}₽\n\n`
     }
 
-    report += "=".repeat(40) + "\n"
-    report += `Площадь: ${totalArea.toFixed(2)}м² | Сумма: ${subtotal.toLocaleString("ru-RU")}₽\n`
+    report += "=".repeat(50) + "\n"
+    report += `Общая площадь: ${totalArea.toFixed(2)}м²\n`
+    report += `Сумма: ${subtotal.toLocaleString("ru-RU")}₽\n`
 
     if (discountPercent > 0) {
-      report += `Скидка: ${discountPercent.toFixed(1)}% (-${discountAmount.toLocaleString("ru-RU")}₽)\n`
+      report += `Скидка ${discountPercent.toFixed(1)}%: -${discountAmount.toLocaleString("ru-RU")}₽\n`
     }
 
-    report += `\nИТОГО: ${finalTotal.toLocaleString("ru-RU")}₽\n`
+    report += `\nИТОГО К ОПЛАТЕ: ${finalTotal.toLocaleString("ru-RU")}₽\n`
 
     return report
   }
@@ -186,93 +193,122 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
     }
   }
 
-  const exportToPDF = async () => {
-    const { jsPDF } = await import("jspdf")
-    const doc = new jsPDF()
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(16)
-    doc.text("РАСЧЕТ СТОИМОСТИ СТОЛЕШНИЦ", 20, 20)
-
-    let yPos = 35
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(10)
-
-    if (restorationCountertops.length > 0) {
-      doc.setFont("helvetica", "bold")
-      doc.text("РЕСТАВРАЦИЯ:", 20, yPos)
-      yPos += 7
-      doc.setFont("helvetica", "normal")
-
-      restorationCountertops.forEach((c, idx) => {
-        const length = Number.parseFloat(c.length) || 0
-        const width = Number.parseFloat(c.width) || 0
-        const area = (length * width) / 1000000
-        const price = calculateRestorationPrice(c)
-
-        const line = `${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²) | ${c.material === "solid" ? "Массив" : "Шпон"} | ${c.coating === "oil" ? "Масло" : "Лак"}${c.milling ? " | Фрезеровка" : ""}`
-        doc.text(line, 20, yPos)
-        doc.text(`${price.toLocaleString("ru-RU")} ₽`, 190, yPos, { align: "right" })
-        yPos += 6
-      })
-
-      doc.setFont("helvetica", "bold")
-      doc.text(`Итого: ${restorationTotal.toLocaleString("ru-RU")} ₽`, 20, yPos)
-      yPos += 10
-    }
-
-    if (newCountertops.length > 0) {
-      doc.setFont("helvetica", "bold")
-      doc.text("ИЗГОТОВЛЕНИЕ:", 20, yPos)
-      yPos += 7
-      doc.setFont("helvetica", "normal")
-
-      newCountertops.forEach((c, idx) => {
-        const length = Number.parseFloat(c.length) || 0
-        const width = Number.parseFloat(c.width) || 0
-        const area = (length * width) / 1000000
-        const price = calculateNewPrice(c)
-
-        const line = `${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²) | ${c.thickness}mm | ${c.type === "solid-lamella" ? "Цельноламельная" : "Сращенная"} | ${c.coating === "oil" ? "Масло" : "Лак"}`
-        doc.text(line, 20, yPos)
-        doc.text(`${price.toLocaleString("ru-RU")} ₽`, 190, yPos, { align: "right" })
-        yPos += 6
-      })
-
-      doc.setFont("helvetica", "bold")
-      doc.text(`Итого: ${newTotal.toLocaleString("ru-RU")} ₽`, 20, yPos)
-      yPos += 10
-    }
-
-    doc.setDrawColor(0)
-    doc.line(20, yPos, 190, yPos)
-    yPos += 7
-
-    doc.setFont("helvetica", "normal")
-    doc.text(`Площадь: ${totalArea.toFixed(2)} м²`, 20, yPos)
-    doc.text(`Сумма: ${subtotal.toLocaleString("ru-RU")} ₽`, 190, yPos, { align: "right" })
-    yPos += 6
-
-    if (discountPercent > 0) {
-      doc.text(`Скидка: ${discountPercent.toFixed(1)}%`, 20, yPos)
-      doc.text(`-${discountAmount.toLocaleString("ru-RU")} ₽`, 190, yPos, { align: "right" })
-      yPos += 6
-    }
-
-    yPos += 3
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(14)
-    doc.text("ИТОГО:", 20, yPos)
-    doc.text(`${finalTotal.toLocaleString("ru-RU")} ₽`, 190, yPos, { align: "right" })
-
-    doc.save(`расчет-столешниц-${new Date().toLocaleDateString("ru-RU")}.pdf`)
-  }
-
-  useEffect(() => {
+  const handleSaveCalculation = () => {
     if (mounted && finalTotal > 0) {
       saveCalculation(restorationCountertops, newCountertops, finalTotal)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
     }
-  }, [finalTotal, mounted, restorationCountertops, newCountertops])
+  }
+
+  const exportToPDF = async () => {
+    try {
+      const { jsPDF } = await import("jspdf")
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      })
+
+      // Use built-in fonts and proper encoding
+      let yPos = 20
+
+      // Title
+      doc.setFontSize(18)
+      doc.setFont("helvetica", "bold")
+      doc.text("RASCHET STOIMOSTI STOLESHNIC", 105, yPos, { align: "center" })
+      yPos += 10
+      doc.setFontSize(10)
+      doc.text("(Calculation of Countertop Cost)", 105, yPos, { align: "center" })
+      yPos += 15
+
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(11)
+
+      if (restorationCountertops.length > 0) {
+        doc.setFont("helvetica", "bold")
+        doc.text("RESTAVRACIYA (Restoration):", 20, yPos)
+        yPos += 7
+        doc.setFont("helvetica", "normal")
+
+        restorationCountertops.forEach((c, idx) => {
+          const length = Number.parseFloat(c.length) || 0
+          const width = Number.parseFloat(c.width) || 0
+          const area = (length * width) / 1000000
+          const price = calculateRestorationPrice(c)
+
+          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²)`, 25, yPos)
+          yPos += 5
+          const details = `   ${c.material === "solid" ? "Massiv" : "Shpon"} | ${c.coating === "oil" ? "Maslo Osmo" : "2K Lak"}${c.milling ? " | Frezerovka" : ""}`
+          doc.text(details, 25, yPos)
+          yPos += 5
+          doc.text(`   ${price.toLocaleString("ru-RU")} RUB`, 25, yPos)
+          yPos += 7
+        })
+
+        doc.setFont("helvetica", "bold")
+        doc.text(`Itogo: ${restorationTotal.toLocaleString("ru-RU")} RUB`, 25, yPos)
+        yPos += 10
+      }
+
+      if (newCountertops.length > 0) {
+        doc.setFont("helvetica", "bold")
+        doc.text("IZGOTOVLENIE (Manufacturing):", 20, yPos)
+        yPos += 7
+        doc.setFont("helvetica", "normal")
+
+        newCountertops.forEach((c, idx) => {
+          const length = Number.parseFloat(c.length) || 0
+          const width = Number.parseFloat(c.width) || 0
+          const area = (length * width) / 1000000
+          const price = calculateNewPrice(c)
+
+          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²)`, 25, yPos)
+          yPos += 5
+          const details = `   ${c.thickness}mm | ${c.type === "solid-lamella" ? "Cel'nolamel'naya" : "Srashchennaya"} | ${c.coating === "oil" ? "Maslo" : "Lak"}`
+          doc.text(details, 25, yPos)
+          yPos += 5
+          if (c.type === "solid-lamella" && width > 600) {
+            doc.text(`   Doplata za shirinu >600mm`, 25, yPos)
+            yPos += 5
+          }
+          doc.text(`   ${price.toLocaleString("ru-RU")} RUB`, 25, yPos)
+          yPos += 7
+        })
+
+        doc.setFont("helvetica", "bold")
+        doc.text(`Itogo: ${newTotal.toLocaleString("ru-RU")} RUB`, 25, yPos)
+        yPos += 10
+      }
+
+      doc.setDrawColor(0)
+      doc.line(20, yPos, 190, yPos)
+      yPos += 7
+
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(11)
+      doc.text(`Obshchaya ploshchad': ${totalArea.toFixed(2)} m²`, 20, yPos)
+      yPos += 6
+      doc.text(`Summa: ${subtotal.toLocaleString("ru-RU")} RUB`, 20, yPos)
+      yPos += 6
+
+      if (discountPercent > 0) {
+        doc.text(`Skidka ${discountPercent.toFixed(1)}%: -${discountAmount.toLocaleString("ru-RU")} RUB`, 20, yPos)
+        yPos += 6
+      }
+
+      yPos += 3
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(14)
+      doc.text("ITOGO K OPLATE:", 20, yPos)
+      doc.text(`${finalTotal.toLocaleString("ru-RU")} RUB`, 190, yPos, { align: "right" })
+
+      doc.save(`raschet-stoleshnic-${new Date().toLocaleDateString("ru-RU").replace(/\./g, "-")}.pdf`)
+    } catch (error) {
+      console.error("PDF generation error:", error)
+    }
+  }
 
   if (subtotal === 0) {
     return null
@@ -328,7 +364,12 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button onClick={handleSaveCalculation} className="w-full" variant="default">
+            <Save className="h-4 w-4 mr-2" />
+            {saved ? "Сохранено!" : "Сохранить"}
+          </Button>
+
           <Button onClick={copyToClipboard} className="w-full bg-transparent" variant="outline">
             <Copy className="h-4 w-4 mr-2" />
             {copied ? "Скопировано!" : "Копировать"}
