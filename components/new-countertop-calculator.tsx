@@ -4,13 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { NewCountertopItem } from "./new-countertop-item"
+import type { PricingConfig } from "@/lib/pricing-types"
 
 interface NewCountertopCalculatorProps {
   countertops: any[]
   setCountertops: (countertops: any[]) => void
+  pricing: PricingConfig | null
 }
 
-export function NewCountertopCalculator({ countertops, setCountertops }: NewCountertopCalculatorProps) {
+export function NewCountertopCalculator({ countertops, setCountertops, pricing }: NewCountertopCalculatorProps) {
   const addCountertop = () => {
     setCountertops([
       ...countertops,
@@ -21,6 +23,7 @@ export function NewCountertopCalculator({ countertops, setCountertops }: NewCoun
         thickness: "40",
         type: "solid-lamella",
         coating: "oil",
+        cutouts: 0,
       },
     ])
   }
@@ -47,6 +50,7 @@ export function NewCountertopCalculator({ countertops, setCountertops }: NewCoun
             index={index}
             onUpdate={updateCountertop}
             onRemove={removeCountertop}
+            pricing={pricing}
           />
         ))}
 

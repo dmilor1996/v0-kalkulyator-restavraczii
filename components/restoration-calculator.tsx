@@ -4,13 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { RestorationCountertopItem } from "./restoration-countertop-item"
+import type { PricingConfig } from "@/lib/pricing-types"
 
 interface RestorationCalculatorProps {
   countertops: any[]
   setCountertops: (countertops: any[]) => void
+  pricing: PricingConfig | null
 }
 
-export function RestorationCalculator({ countertops, setCountertops }: RestorationCalculatorProps) {
+export function RestorationCalculator({ countertops, setCountertops, pricing }: RestorationCalculatorProps) {
   const addCountertop = () => {
     setCountertops([
       ...countertops,
@@ -49,6 +51,7 @@ export function RestorationCalculator({ countertops, setCountertops }: Restorati
             index={index}
             onUpdate={updateCountertop}
             onRemove={removeCountertop}
+            pricing={pricing}
           />
         ))}
 

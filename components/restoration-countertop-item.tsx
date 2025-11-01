@@ -8,15 +8,26 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { X } from "lucide-react"
 import { CoatingTooltip } from "./coating-tooltip"
+import type { PricingConfig } from "@/lib/pricing-types"
+import { DEFAULT_PRICING } from "@/lib/pricing-types"
 
 interface RestorationCountertopItemProps {
   countertop: any
   index: number
   onUpdate: (id: number, updates: any) => void
   onRemove: (id: number) => void
+  pricing: PricingConfig | null
 }
 
-export function RestorationCountertopItem({ countertop, index, onUpdate, onRemove }: RestorationCountertopItemProps) {
+export function RestorationCountertopItem({
+  countertop,
+  index,
+  onUpdate,
+  onRemove,
+  pricing,
+}: RestorationCountertopItemProps) {
+  const prices = pricing || DEFAULT_PRICING
+
   const calculatePrice = () => {
     const length = Number.parseFloat(countertop.length) || 0
     const width = Number.parseFloat(countertop.width) || 0
@@ -24,15 +35,15 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
 
     if (area === 0) return 0
 
-    const basePrice = countertop.material === "solid" ? 10500 : 12500
+    const basePrice = countertop.material === "solid" ? prices.restoration.solid : prices.restoration.veneer
     let totalPrice = basePrice * area
 
     if (countertop.milling) {
-      totalPrice += 1000
+      totalPrice += prices.restoration.milling
     }
 
     if (countertop.coating === "lacquer") {
-      totalPrice += 4000 * area
+      totalPrice += prices.restoration.coating2K * area
     }
 
     return Math.round(totalPrice)
@@ -97,13 +108,13 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="solid" id={`solid-${countertop.id}`} />
               <Label htmlFor={`solid-${countertop.id}`} className="font-normal cursor-pointer">
-                Массив (10 500 ₽/м²)
+                Массив ({prices.restoration.solid.toLocaleString("ru-RU")} ₽/м²)
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="veneer" id={`veneer-${countertop.id}`} />
               <Label htmlFor={`veneer-${countertop.id}`} className="font-normal cursor-pointer">
-                Шпон (12 500 ₽/м²)
+                Шпон ({prices.restoration.veneer.toLocaleString("ru-RU")} ₽/м²)
               </Label>
             </div>
           </RadioGroup>
@@ -122,7 +133,7 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lacquer" id={`lacquer-${countertop.id}`} />
               <Label htmlFor={`lacquer-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
-                2К акриловый лак (+4 000 ₽/м²)
+                2К акриловый лак (+{prices.restoration.coating2K.toLocaleString("ru-RU")} ₽/м²)
                 <CoatingTooltip type="lacquer" />
               </Label>
             </div>
@@ -135,8 +146,9 @@ export function RestorationCountertopItem({ countertop, index, onUpdate, onRemov
             checked={countertop.milling}
             onCheckedChange={(checked) => onUpdate(countertop.id, { milling: checked })}
           />
-          <Label htmlFor={`milling-${countertop.id}`} className="font-normal cursor-pointer">
-            Фрезеровка (+1 000 ₽)
+          <Label htmlFor={`milling-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
+            Фрезеровка (+{prices.restoration.milling.toLocaleString("ru-RU")} ₽)
+            <CoatingTooltip type="milling" />
           </Label>
         </div>
       </div>

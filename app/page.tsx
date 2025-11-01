@@ -5,22 +5,49 @@ import { RestorationCalculator } from "@/components/restoration-calculator"
 import { NewCountertopCalculator } from "@/components/new-countertop-calculator"
 import { TotalSummary } from "@/components/total-summary"
 import { CalculationHistory } from "@/components/calculation-history"
+import { AdminPanel } from "@/components/admin-panel"
 import { MessageCircle, Phone } from "lucide-react"
 import type { SavedCalculation } from "@/lib/storage"
+import type { PricingConfig } from "@/lib/pricing-types"
 
 export default function Home() {
   const [restorationCountertops, setRestorationCountertops] = useState<any[]>([])
   const [newCountertops, setNewCountertops] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
+  const [showAdminPanel, setShowAdminPanel] = useState(false)
+  const [clickCount, setClickCount] = useState(0)
+  const [pricing, setPricing] = useState<PricingConfig | null>(null)
 
   useEffect(() => {
     setMounted(true)
+    loadPricing()
   }, [])
+
+  const loadPricing = async () => {
+    try {
+      const response = await fetch("/api/pricing")
+      const data = await response.json()
+      setPricing(data)
+    } catch (error) {
+      console.error("Error loading pricing:", error)
+    }
+  }
 
   const handleLoadCalculation = (calc: SavedCalculation) => {
     setRestorationCountertops(calc.restorationCountertops)
     setNewCountertops(calc.newCountertops)
     window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleTitleClick = () => {
+    setClickCount((prev) => prev + 1)
+
+    if (clickCount + 1 === 3) {
+      setShowAdminPanel(true)
+      setClickCount(0)
+    }
+
+    setTimeout(() => setClickCount(0), 1000)
   }
 
   if (!mounted) {
@@ -31,7 +58,10 @@ export default function Home() {
     <main className="min-h-screen bg-background py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 text-balance">
+          <h1
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 text-balance cursor-pointer select-none"
+            onClick={handleTitleClick}
+          >
             Калькулятор стоимости столешниц
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground text-pretty">
@@ -42,11 +72,19 @@ export default function Home() {
         <div className="space-y-6 sm:space-y-8">
           <CalculationHistory onLoad={handleLoadCalculation} />
 
-          <RestorationCalculator countertops={restorationCountertops} setCountertops={setRestorationCountertops} />
+          <RestorationCalculator
+            countertops={restorationCountertops}
+            setCountertops={setRestorationCountertops}
+            pricing={pricing}
+          />
 
-          <NewCountertopCalculator countertops={newCountertops} setCountertops={setNewCountertops} />
+          <NewCountertopCalculator countertops={newCountertops} setCountertops={setNewCountertops} pricing={pricing} />
 
-          <TotalSummary restorationCountertops={restorationCountertops} newCountertops={newCountertops} />
+          <TotalSummary
+            restorationCountertops={restorationCountertops}
+            newCountertops={newCountertops}
+            pricing={pricing}
+          />
         </div>
 
         <footer className="mt-12 sm:mt-16 pt-6 sm:pt-8 border-t border-border">
@@ -82,6 +120,15 @@ export default function Home() {
             </div>
           </div>
         </footer>
+
+        {showAdminPanel && (
+          <AdminPanel
+            onClose={() => {
+              setShowAdminPanel(false)
+              loadPricing()
+            }}
+          />
+        )}
       </div>
     </main>
   )

@@ -3,23 +3,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Copy, Download, Save } from "lucide-react"
+import { Copy, Download, Calculator } from "lucide-react"
 import { useState, useEffect } from "react"
 import { saveCalculation } from "@/lib/storage"
+import type { PricingConfig } from "@/lib/pricing-types"
+import { DEFAULT_PRICING } from "@/lib/pricing-types"
 
 interface TotalSummaryProps {
   restorationCountertops: any[]
   newCountertops: any[]
+  pricing: PricingConfig | null
 }
 
-export function TotalSummary({ restorationCountertops, newCountertops }: TotalSummaryProps) {
+export function TotalSummary({ restorationCountertops, newCountertops, pricing }: TotalSummaryProps) {
   const [copied, setCopied] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [isCalculated, setIsCalculated] = useState(false)
+
+  const prices = pricing || DEFAULT_PRICING
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    setIsCalculated(false)
+  }, [restorationCountertops, newCountertops])
 
   const calculateRestorationPrice = (countertop: any) => {
     const length = Number.parseFloat(countertop.length) || 0
@@ -28,15 +37,15 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
 
     if (area === 0) return 0
 
-    const basePrice = countertop.material === "solid" ? 10500 : 12500
+    const basePrice = countertop.material === "solid" ? prices.restoration.solid : prices.restoration.veneer
     let totalPrice = basePrice * area
 
     if (countertop.milling) {
-      totalPrice += 1000
+      totalPrice += prices.restoration.milling
     }
 
     if (countertop.coating === "lacquer") {
-      totalPrice += 4000 * area
+      totalPrice += prices.restoration.coating2K * area
     }
 
     return Math.round(totalPrice)
@@ -45,6 +54,7 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
   const calculateNewPrice = (countertop: any) => {
     const length = Number.parseFloat(countertop.length) || 0
     const width = Number.parseFloat(countertop.width) || 0
+    const cutouts = Number.parseInt(countertop.cutouts) || 0
     const area = (length * width) / 1000000
 
     if (area === 0) return 0
@@ -58,39 +68,41 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
       if (width > 600) {
         const extraWidth = width - 600
         const extra50mmSegments = Math.ceil(extraWidth / 50)
-        widthExtraCharge = extra50mmSegments * 1000
+        widthExtraCharge = extra50mmSegments * prices.newCountertop.widthSurcharge
       }
 
       if (countertop.thickness === "40") {
         if (roundedLength >= 900 && roundedLength <= 2150) {
-          basePrice = 29640
+          basePrice = prices.newCountertop.solid40mm.range1
         } else if (roundedLength >= 2151 && roundedLength <= 2950) {
-          basePrice = 32490
+          basePrice = prices.newCountertop.solid40mm.range2
         } else if (roundedLength >= 2951 && roundedLength <= 3500) {
-          basePrice = 33791
+          basePrice = prices.newCountertop.solid40mm.range3
         } else {
-          basePrice = 29640
+          basePrice = prices.newCountertop.solid40mm.range1
         }
       } else {
         if (roundedLength >= 900 && roundedLength <= 2150) {
-          basePrice = 22990
+          basePrice = prices.newCountertop.solid20mm.range1
         } else if (roundedLength >= 2151 && roundedLength <= 2950) {
-          basePrice = 24282
+          basePrice = prices.newCountertop.solid20mm.range2
         } else if (roundedLength >= 2951 && roundedLength <= 3500) {
-          basePrice = 25811
+          basePrice = prices.newCountertop.solid20mm.range3
         } else {
-          basePrice = 22990
+          basePrice = prices.newCountertop.solid20mm.range1
         }
       }
     } else {
-      basePrice = countertop.thickness === "40" ? 21793 : 19979
+      basePrice = countertop.thickness === "40" ? prices.newCountertop.spliced40mm : prices.newCountertop.spliced20mm
     }
 
     let totalPrice = basePrice * area + widthExtraCharge
 
     if (countertop.coating === "lacquer") {
-      totalPrice += 4000 * area
+      totalPrice += prices.newCountertop.coating2K * area
     }
+
+    totalPrice += cutouts * prices.newCountertop.cutout
 
     return Math.round(totalPrice)
   }
@@ -129,6 +141,13 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
   const discountAmount = Math.round(subtotal * (discountPercent / 100))
   const finalTotal = subtotal - discountAmount
 
+  const handleCalculate = () => {
+    if (mounted && finalTotal > 0) {
+      setIsCalculated(true)
+      saveCalculation(restorationCountertops, newCountertops, finalTotal)
+    }
+  }
+
   const generateReport = () => {
     let report = "РАСЧЕТ СТОИМОСТИ СТОЛЕШНИЦ\n"
     report += "=".repeat(50) + "\n\n"
@@ -145,9 +164,9 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
         report += `   ${c.material === "solid" ? "Массив" : "Шпон"} | `
         report += `${c.coating === "oil" ? "Масло Osmo" : "2К Лак"}`
         if (c.milling) report += ` | Фрезеровка`
-        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")}₽\n\n`
+        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")} ₽\n\n`
       })
-      report += `Итого реставрация: ${restorationTotal.toLocaleString("ru-RU")}₽\n\n`
+      report += `Итого реставрация: ${restorationTotal.toLocaleString("ru-RU")} ₽\n\n`
     }
 
     if (newCountertops.length > 0) {
@@ -155,6 +174,7 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
       newCountertops.forEach((c, idx) => {
         const length = Number.parseFloat(c.length) || 0
         const width = Number.parseFloat(c.width) || 0
+        const cutouts = Number.parseInt(c.cutouts) || 0
         const area = (length * width) / 1000000
         const price = calculateNewPrice(c)
 
@@ -162,23 +182,26 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
         report += `   ${c.thickness}мм | `
         report += `${c.type === "solid-lamella" ? "Цельноламельная" : "Сращенная"} | `
         report += `${c.coating === "oil" ? "Масло Osmo" : "2К Лак"}`
+        if (cutouts > 0) {
+          report += `\n   Вырезы: ${cutouts} шт`
+        }
         if (c.type === "solid-lamella" && width > 600) {
           report += `\n   Доплата за ширину >600мм`
         }
-        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")}₽\n\n`
+        report += `\n   Стоимость: ${price.toLocaleString("ru-RU")} ₽\n\n`
       })
-      report += `Итого изготовление: ${newTotal.toLocaleString("ru-RU")}₽\n\n`
+      report += `Итого изготовление: ${newTotal.toLocaleString("ru-RU")} ₽\n\n`
     }
 
     report += "=".repeat(50) + "\n"
-    report += `Общая площадь: ${totalArea.toFixed(2)}м²\n`
-    report += `Сумма: ${subtotal.toLocaleString("ru-RU")}₽\n`
+    report += `Общая площадь: ${totalArea.toFixed(2)} м²\n`
+    report += `Сумма: ${subtotal.toLocaleString("ru-RU")} ₽\n`
 
     if (discountPercent > 0) {
-      report += `Скидка ${discountPercent.toFixed(1)}%: -${discountAmount.toLocaleString("ru-RU")}₽\n`
+      report += `Скидка ${discountPercent.toFixed(1)}%: -${discountAmount.toLocaleString("ru-RU")} ₽\n`
     }
 
-    report += `\nИТОГО К ОПЛАТЕ: ${finalTotal.toLocaleString("ru-RU")}₽\n`
+    report += `\nИТОГО К ОПЛАТЕ: ${finalTotal.toLocaleString("ru-RU")} ₽\n`
 
     return report
   }
@@ -193,14 +216,6 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
     }
   }
 
-  const handleSaveCalculation = () => {
-    if (mounted && finalTotal > 0) {
-      saveCalculation(restorationCountertops, newCountertops, finalTotal)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    }
-  }
-
   const exportToPDF = async () => {
     try {
       const { jsPDF } = await import("jspdf")
@@ -211,25 +226,20 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
         format: "a4",
       })
 
-      // Use built-in fonts and proper encoding
       let yPos = 20
 
-      // Title
-      doc.setFontSize(18)
+      doc.setFontSize(16)
       doc.setFont("helvetica", "bold")
       doc.text("RASCHET STOIMOSTI STOLESHNIC", 105, yPos, { align: "center" })
-      yPos += 10
-      doc.setFontSize(10)
-      doc.text("(Calculation of Countertop Cost)", 105, yPos, { align: "center" })
       yPos += 15
 
       doc.setFont("helvetica", "normal")
-      doc.setFontSize(11)
+      doc.setFontSize(10)
 
       if (restorationCountertops.length > 0) {
         doc.setFont("helvetica", "bold")
-        doc.text("RESTAVRACIYA (Restoration):", 20, yPos)
-        yPos += 7
+        doc.text("RESTAVRACIYA:", 20, yPos)
+        yPos += 6
         doc.setFont("helvetica", "normal")
 
         restorationCountertops.forEach((c, idx) => {
@@ -238,13 +248,15 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
           const area = (length * width) / 1000000
           const price = calculateRestorationPrice(c)
 
-          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²)`, 25, yPos)
+          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m2)`, 25, yPos)
           yPos += 5
-          const details = `   ${c.material === "solid" ? "Massiv" : "Shpon"} | ${c.coating === "oil" ? "Maslo Osmo" : "2K Lak"}${c.milling ? " | Frezerovka" : ""}`
-          doc.text(details, 25, yPos)
+          const material = c.material === "solid" ? "Massiv" : "Shpon"
+          const coating = c.coating === "oil" ? "Maslo Osmo" : "2K Lak"
+          const milling = c.milling ? " | Frezerovka" : ""
+          doc.text(`   ${material} | ${coating}${milling}`, 25, yPos)
           yPos += 5
           doc.text(`   ${price.toLocaleString("ru-RU")} RUB`, 25, yPos)
-          yPos += 7
+          yPos += 6
         })
 
         doc.setFont("helvetica", "bold")
@@ -254,27 +266,33 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
 
       if (newCountertops.length > 0) {
         doc.setFont("helvetica", "bold")
-        doc.text("IZGOTOVLENIE (Manufacturing):", 20, yPos)
-        yPos += 7
+        doc.text("IZGOTOVLENIE:", 20, yPos)
+        yPos += 6
         doc.setFont("helvetica", "normal")
 
         newCountertops.forEach((c, idx) => {
           const length = Number.parseFloat(c.length) || 0
           const width = Number.parseFloat(c.width) || 0
+          const cutouts = Number.parseInt(c.cutouts) || 0
           const area = (length * width) / 1000000
           const price = calculateNewPrice(c)
 
-          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m²)`, 25, yPos)
+          doc.text(`${idx + 1}. ${length}x${width}mm (${area.toFixed(2)}m2)`, 25, yPos)
           yPos += 5
-          const details = `   ${c.thickness}mm | ${c.type === "solid-lamella" ? "Cel'nolamel'naya" : "Srashchennaya"} | ${c.coating === "oil" ? "Maslo" : "Lak"}`
-          doc.text(details, 25, yPos)
+          const type = c.type === "solid-lamella" ? "Cel'nolamel'naya" : "Srashchennaya"
+          const coating = c.coating === "oil" ? "Maslo" : "Lak"
+          doc.text(`   ${c.thickness}mm | ${type} | ${coating}`, 25, yPos)
           yPos += 5
+          if (cutouts > 0) {
+            doc.text(`   Vyrezy: ${cutouts} sht`, 25, yPos)
+            yPos += 5
+          }
           if (c.type === "solid-lamella" && width > 600) {
             doc.text(`   Doplata za shirinu >600mm`, 25, yPos)
             yPos += 5
           }
           doc.text(`   ${price.toLocaleString("ru-RU")} RUB`, 25, yPos)
-          yPos += 7
+          yPos += 6
         })
 
         doc.setFont("helvetica", "bold")
@@ -287,8 +305,7 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
       yPos += 7
 
       doc.setFont("helvetica", "normal")
-      doc.setFontSize(11)
-      doc.text(`Obshchaya ploshchad': ${totalArea.toFixed(2)} m²`, 20, yPos)
+      doc.text(`Obshchaya ploshchad': ${totalArea.toFixed(2)} m2`, 20, yPos)
       yPos += 6
       doc.text(`Summa: ${subtotal.toLocaleString("ru-RU")} RUB`, 20, yPos)
       yPos += 6
@@ -300,11 +317,11 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
 
       yPos += 3
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(14)
+      doc.setFontSize(12)
       doc.text("ITOGO K OPLATE:", 20, yPos)
       doc.text(`${finalTotal.toLocaleString("ru-RU")} RUB`, 190, yPos, { align: "right" })
 
-      doc.save(`raschet-stoleshnic-${new Date().toLocaleDateString("ru-RU").replace(/\./g, "-")}.pdf`)
+      doc.save(`raschet-${new Date().toISOString().split("T")[0]}.pdf`)
     } catch (error) {
       console.error("PDF generation error:", error)
     }
@@ -364,22 +381,26 @@ export function TotalSummary({ restorationCountertops, newCountertops }: TotalSu
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Button onClick={handleSaveCalculation} className="w-full" variant="default">
-            <Save className="h-4 w-4 mr-2" />
-            {saved ? "Сохранено!" : "Сохранить"}
+        {!isCalculated && (
+          <Button onClick={handleCalculate} className="w-full" size="lg">
+            <Calculator className="h-5 w-5 mr-2" />
+            Рассчитать и сохранить
           </Button>
+        )}
 
-          <Button onClick={copyToClipboard} className="w-full bg-transparent" variant="outline">
-            <Copy className="h-4 w-4 mr-2" />
-            {copied ? "Скопировано!" : "Копировать"}
-          </Button>
+        {isCalculated && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button onClick={copyToClipboard} className="w-full bg-transparent" variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              {copied ? "Скопировано!" : "Копировать"}
+            </Button>
 
-          <Button onClick={exportToPDF} className="w-full bg-transparent" variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Скачать PDF
-          </Button>
-        </div>
+            <Button onClick={exportToPDF} className="w-full bg-transparent" variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Скачать PDF
+            </Button>
+          </div>
+        )}
 
         {discountPercent === 0 && totalArea > 0 && totalArea < 3 && (
           <div className="mt-4 p-3 bg-muted rounded-lg">

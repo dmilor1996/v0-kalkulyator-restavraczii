@@ -7,18 +7,24 @@ import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { X, AlertCircle } from "lucide-react"
 import { CoatingTooltip } from "./coating-tooltip"
+import type { PricingConfig } from "@/lib/pricing-types"
+import { DEFAULT_PRICING } from "@/lib/pricing-types"
 
 interface NewCountertopItemProps {
   countertop: any
   index: number
   onUpdate: (id: number, updates: any) => void
   onRemove: (id: number) => void
+  pricing: PricingConfig | null
 }
 
-export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: NewCountertopItemProps) {
+export function NewCountertopItem({ countertop, index, onUpdate, onRemove, pricing }: NewCountertopItemProps) {
+  const prices = pricing || DEFAULT_PRICING
+
   const calculatePrice = () => {
     const length = Number.parseFloat(countertop.length) || 0
     const width = Number.parseFloat(countertop.width) || 0
+    const cutouts = Number.parseInt(countertop.cutouts) || 0
     const area = (length * width) / 1000000
 
     if (area === 0) return 0
@@ -32,39 +38,41 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
       if (width > 600) {
         const extraWidth = width - 600
         const extra50mmSegments = Math.ceil(extraWidth / 50)
-        widthExtraCharge = extra50mmSegments * 1000
+        widthExtraCharge = extra50mmSegments * prices.newCountertop.widthSurcharge
       }
 
       if (countertop.thickness === "40") {
         if (roundedLength >= 900 && roundedLength <= 2150) {
-          basePrice = 29640
+          basePrice = prices.newCountertop.solid40mm.range1
         } else if (roundedLength >= 2151 && roundedLength <= 2950) {
-          basePrice = 32490
+          basePrice = prices.newCountertop.solid40mm.range2
         } else if (roundedLength >= 2951 && roundedLength <= 3500) {
-          basePrice = 33791
+          basePrice = prices.newCountertop.solid40mm.range3
         } else {
-          basePrice = 29640
+          basePrice = prices.newCountertop.solid40mm.range1
         }
       } else {
         if (roundedLength >= 900 && roundedLength <= 2150) {
-          basePrice = 22990
+          basePrice = prices.newCountertop.solid20mm.range1
         } else if (roundedLength >= 2151 && roundedLength <= 2950) {
-          basePrice = 24282
+          basePrice = prices.newCountertop.solid20mm.range2
         } else if (roundedLength >= 2951 && roundedLength <= 3500) {
-          basePrice = 25811
+          basePrice = prices.newCountertop.solid20mm.range3
         } else {
-          basePrice = 22990
+          basePrice = prices.newCountertop.solid20mm.range1
         }
       }
     } else {
-      basePrice = countertop.thickness === "40" ? 21793 : 19979
+      basePrice = countertop.thickness === "40" ? prices.newCountertop.spliced40mm : prices.newCountertop.spliced20mm
     }
 
     let totalPrice = basePrice * area + widthExtraCharge
 
     if (countertop.coating === "lacquer") {
-      totalPrice += 4000 * area
+      totalPrice += prices.newCountertop.coating2K * area
     }
+
+    totalPrice += cutouts * prices.newCountertop.cutout
 
     return Math.round(totalPrice)
   }
@@ -78,27 +86,29 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
   const getSolidLamellaPriceDisplay = () => {
     if (countertop.thickness === "40") {
       if (length >= 900 && length <= 2150) {
-        return "29 640 ₽/м²"
+        return `${prices.newCountertop.solid40mm.range1.toLocaleString("ru-RU")} ₽/м²`
       } else if (length >= 2151 && length <= 2950) {
-        return "32 490 ₽/м²"
+        return `${prices.newCountertop.solid40mm.range2.toLocaleString("ru-RU")} ₽/м²`
       } else if (length >= 2951 && length <= 3500) {
-        return "33 791 ₽/м²"
+        return `${prices.newCountertop.solid40mm.range3.toLocaleString("ru-RU")} ₽/м²`
       }
-      return "29 640 - 33 791 ₽/м²"
+      return `${prices.newCountertop.solid40mm.range1.toLocaleString("ru-RU")} - ${prices.newCountertop.solid40mm.range3.toLocaleString("ru-RU")} ₽/м²`
     } else {
       if (length >= 900 && length <= 2150) {
-        return "22 990 ₽/м²"
+        return `${prices.newCountertop.solid20mm.range1.toLocaleString("ru-RU")} ₽/м²`
       } else if (length >= 2151 && length <= 2950) {
-        return "24 282 ₽/м²"
+        return `${prices.newCountertop.solid20mm.range2.toLocaleString("ru-RU")} ₽/м²`
       } else if (length >= 2951 && length <= 3500) {
-        return "25 811 ₽/м²"
+        return `${prices.newCountertop.solid20mm.range3.toLocaleString("ru-RU")} ₽/м²`
       }
-      return "22 990 - 25 811 ₽/м²"
+      return `${prices.newCountertop.solid20mm.range1.toLocaleString("ru-RU")} - ${prices.newCountertop.solid20mm.range3.toLocaleString("ru-RU")} ₽/м²`
     }
   }
 
   const getSplicedPriceDisplay = () => {
-    return countertop.thickness === "40" ? "21 793 ₽/м²" : "19 979 ₽/м²"
+    return countertop.thickness === "40"
+      ? `${prices.newCountertop.spliced40mm.toLocaleString("ru-RU")} ₽/м²`
+      : `${prices.newCountertop.spliced20mm.toLocaleString("ru-RU")} ₽/м²`
   }
 
   return (
@@ -196,6 +206,22 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
           </RadioGroup>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor={`cutouts-${countertop.id}`}>Количество вырезов (плита/раковина)</Label>
+          <Input
+            id={`cutouts-${countertop.id}`}
+            type="number"
+            min="0"
+            placeholder="0"
+            value={countertop.cutouts || 0}
+            onChange={(e) => onUpdate(countertop.id, { cutouts: e.target.value })}
+            className="transition-colors"
+          />
+          <p className="text-xs text-muted-foreground">
+            1 вырез = {prices.newCountertop.cutout.toLocaleString("ru-RU")} ₽
+          </p>
+        </div>
+
         <div className="space-y-3">
           <Label>Финишное покрытие</Label>
           <RadioGroup value={countertop.coating} onValueChange={(value) => onUpdate(countertop.id, { coating: value })}>
@@ -209,7 +235,7 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove }: New
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lacquer" id={`new-lacquer-${countertop.id}`} />
               <Label htmlFor={`new-lacquer-${countertop.id}`} className="font-normal cursor-pointer flex items-center">
-                2К акриловый лак (+4 000 ₽/м²)
+                2К акриловый лак (+{prices.newCountertop.coating2K.toLocaleString("ru-RU")} ₽/м²)
                 <CoatingTooltip type="lacquer" />
               </Label>
             </div>
