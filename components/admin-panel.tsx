@@ -18,11 +18,16 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [loginError, setLoginError] = useState("")
   const [message, setMessage] = useState("")
+  const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
-    loadPricing()
-  }, [])
+    // Загружаем цены только после успешной авторизации
+    if (isAuthenticated) {
+      loadPricing()
+    }
+  }, [isAuthenticated])
 
   const loadPricing = async () => {
     setLoading(true)
@@ -37,9 +42,34 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     }
   }
 
-  const handleLogin = () => {
-    if (password) {
-      setIsAuthenticated(true)
+  const handleLogin = async () => {
+    if (!password) {
+      setLoginError("Введите пароль")
+      return
+    }
+
+    setIsVerifying(true)
+    setLoginError("")
+
+    try {
+      const response = await fetch("/api/pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, verifyOnly: true }),
+      })
+
+      if (response.ok) {
+        setIsAuthenticated(true)
+        setLoginError("")
+      } else {
+        const data = await response.json()
+        setLoginError(data.error || "Неверный пароль")
+      }
+    } catch (error) {
+      console.error("Error verifying password:", error)
+      setLoginError("Ошибка проверки пароля")
+    } finally {
+      setIsVerifying(false)
     }
   }
 
@@ -96,15 +126,29 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setLoginError("")
+                }}
+                onKeyDown={(e) => e.key === "Enter" && !isVerifying && handleLogin()}
+                disabled={isVerifying}
               />
+              {loginError && (
+                <p className="text-sm text-destructive">{loginError}</p>
+              )}
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleLogin} className="flex-1">
-                Войти
+              <Button onClick={handleLogin} className="flex-1" disabled={isVerifying}>
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Проверка...
+                  </>
+                ) : (
+                  "Войти"
+                )}
               </Button>
-              <Button onClick={onClose} variant="outline">
+              <Button onClick={onClose} variant="outline" disabled={isVerifying}>
                 Отмена
               </Button>
             </div>

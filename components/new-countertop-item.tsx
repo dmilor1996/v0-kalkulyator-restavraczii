@@ -208,18 +208,20 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove, prici
 
         <div className="space-y-2">
           <Label htmlFor={`cutouts-${countertop.id}`}>Количество вырезов (плита/раковина)</Label>
-          <Input
-            id={`cutouts-${countertop.id}`}
-            type="number"
-            min="0"
-            placeholder="0"
-            value={countertop.cutouts || 0}
-            onChange={(e) => onUpdate(countertop.id, { cutouts: e.target.value })}
-            className="transition-colors"
-          />
-          <p className="text-xs text-muted-foreground">
-            1 вырез = {prices.newCountertop.cutout.toLocaleString("ru-RU")} ₽
-          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              id={`cutouts-${countertop.id}`}
+              type="number"
+              min="0"
+              placeholder="0"
+              value={countertop.cutouts || 0}
+              onChange={(e) => onUpdate(countertop.id, { cutouts: e.target.value })}
+              className="transition-colors w-24"
+            />
+            <p className="text-xs text-muted-foreground">
+              1 вырез = {prices.newCountertop.cutout.toLocaleString("ru-RU")} ₽
+            </p>
+          </div>
         </div>
 
         <div className="space-y-3">

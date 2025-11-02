@@ -22,11 +22,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { password, pricing } = await request.json()
+    const { password, pricing, verifyOnly } = await request.json()
 
     // Проверка пароля
     if (password !== ADMIN_PASSWORD) {
       return NextResponse.json({ error: "Неверный пароль" }, { status: 401 })
+    }
+
+    // Если это только проверка пароля (без сохранения)
+    if (verifyOnly) {
+      return NextResponse.json({ success: true, verified: true })
     }
 
     // Сохранение цен

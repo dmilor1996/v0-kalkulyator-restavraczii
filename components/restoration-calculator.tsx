@@ -2,7 +2,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Plus, Copy } from "lucide-react"
+import { useState } from "react"
 import { RestorationCountertopItem } from "./restoration-countertop-item"
 import type { PricingConfig } from "@/lib/pricing-types"
 
@@ -13,6 +17,9 @@ interface RestorationCalculatorProps {
 }
 
 export function RestorationCalculator({ countertops, setCountertops, pricing }: RestorationCalculatorProps) {
+  const [quantity, setQuantity] = useState(1)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
   const addCountertop = () => {
     setCountertops([
       ...countertops,
@@ -25,6 +32,20 @@ export function RestorationCalculator({ countertops, setCountertops, pricing }: 
         coating: "oil",
       },
     ])
+  }
+
+  const addMultipleCountertops = () => {
+    const newCountertops = Array.from({ length: quantity }, () => ({
+      id: Date.now() + Math.random(),
+      length: "",
+      width: "",
+      material: "solid",
+      milling: false,
+      coating: "oil",
+    }))
+    setCountertops([...countertops, ...newCountertops])
+    setIsDialogOpen(false)
+    setQuantity(1)
   }
 
   const updateCountertop = (id: number, updates: any) => {
@@ -45,24 +66,68 @@ export function RestorationCalculator({ countertops, setCountertops, pricing }: 
       </CardHeader>
       <CardContent className="space-y-4">
         {countertops.map((countertop, index) => (
-          <RestorationCountertopItem
+          <div
             key={countertop.id}
-            countertop={countertop}
-            index={index}
-            onUpdate={updateCountertop}
-            onRemove={removeCountertop}
-            pricing={pricing}
-          />
+            className="animate-in fade-in slide-in-from-top-4 duration-300"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <RestorationCountertopItem
+              countertop={countertop}
+              index={index}
+              onUpdate={updateCountertop}
+              onRemove={removeCountertop}
+              pricing={pricing}
+            />
+          </div>
         ))}
 
-        <Button
-          onClick={addCountertop}
-          variant="outline"
-          className="w-full border-2 border-dashed hover:border-primary hover:bg-secondary bg-transparent"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Добавить столешницу
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={addCountertop}
+            variant="outline"
+            className="flex-1 border-2 border-dashed hover:border-primary hover:bg-secondary bg-transparent animate-in fade-in duration-300"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Добавить столешницу
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="animate-in fade-in duration-300">
+                <Copy className="mr-2 h-5 w-5" />
+                Несколько
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Добавить несколько столешниц</DialogTitle>
+                <DialogDescription>
+                  Все столешницы будут созданы с одинаковыми начальными параметрами. Вы сможете изменить параметры каждой отдельно после добавления.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Количество столешниц</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(50, Number.parseInt(e.target.value) || 1)))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Отмена
+                </Button>
+                <Button onClick={addMultipleCountertops}>
+                  Добавить {quantity} {quantity === 1 ? "столешницу" : quantity < 5 ? "столешницы" : "столешниц"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardContent>
     </Card>
   )
