@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { MaterialSearch } from "@/components/material-search"
 import { RestorationCalculator } from "@/components/restoration-calculator"
 import { NewCountertopCalculator } from "@/components/new-countertop-calculator"
 import { TotalSummary } from "@/components/total-summary"
 import { CalculationHistory } from "@/components/calculation-history"
 import { AdminPanel } from "@/components/admin-panel"
-import { MessageCircle, Phone, Sun, Moon } from "lucide-react"
-import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+import { MessageCircle, Phone } from "lucide-react"
 import type { SavedCalculation } from "@/lib/storage"
 import type { PricingConfig } from "@/lib/pricing-types"
 
@@ -19,7 +18,6 @@ export default function Home() {
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [clickCount, setClickCount] = useState(0)
   const [pricing, setPricing] = useState<PricingConfig | null>(null)
-  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
@@ -61,16 +59,6 @@ export default function Home() {
     <main className="min-h-screen bg-background py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8 sm:mb-12 relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-0 right-0"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Переключить тему"
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
           <h1
             className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 text-balance cursor-pointer select-none"
             onClick={handleTitleClick}
@@ -78,26 +66,38 @@ export default function Home() {
             Калькулятор стоимости столешниц
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground text-pretty">
-            Рассчитайте стоимость реставрации и изготовления столешниц из дуба
+            Найдите материалы у поставщиков и рассчитайте стоимость с наценкой
           </p>
         </header>
 
         <div className="space-y-6 sm:space-y-8">
-          <CalculationHistory onLoad={handleLoadCalculation} />
+          <Suspense fallback={<div>Загрузка...</div>}>
+            <MaterialSearch />
+          </Suspense>
 
-          <RestorationCalculator
-            countertops={restorationCountertops}
-            setCountertops={setRestorationCountertops}
-            pricing={pricing}
-          />
+          <Suspense fallback={<div>Загрузка...</div>}>
+            <CalculationHistory onLoad={handleLoadCalculation} />
+          </Suspense>
 
-          <NewCountertopCalculator countertops={newCountertops} setCountertops={setNewCountertops} pricing={pricing} />
+          <Suspense fallback={<div>Загрузка...</div>}>
+            <RestorationCalculator
+              countertops={restorationCountertops}
+              setCountertops={setRestorationCountertops}
+              pricing={pricing}
+            />
+          </Suspense>
 
-          <TotalSummary
-            restorationCountertops={restorationCountertops}
-            newCountertops={newCountertops}
-            pricing={pricing}
-          />
+          <Suspense fallback={<div>Загрузка...</div>}>
+            <NewCountertopCalculator
+              countertops={newCountertops}
+              setCountertops={setNewCountertops}
+              pricing={pricing}
+            />
+          </Suspense>
+
+          <Suspense fallback={<div>Загрузка...</div>}>
+            <TotalSummary restorationCountertops={restorationCountertops} newCountertops={newCountertops} pricing={pricing} />
+          </Suspense>
         </div>
 
         <footer className="mt-12 sm:mt-16 pt-6 sm:pt-8 border-t border-border">

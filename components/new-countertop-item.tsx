@@ -9,6 +9,7 @@ import { X, AlertCircle } from "lucide-react"
 import { CoatingTooltip } from "./coating-tooltip"
 import type { PricingConfig } from "@/lib/pricing-types"
 import { DEFAULT_PRICING } from "@/lib/pricing-types"
+import { useState, useEffect } from "react"
 
 interface NewCountertopItemProps {
   countertop: any
@@ -20,6 +21,53 @@ interface NewCountertopItemProps {
 
 export function NewCountertopItem({ countertop, index, onUpdate, onRemove, pricing }: NewCountertopItemProps) {
   const prices = pricing || DEFAULT_PRICING
+  const [supplierPrice, setSupplierPrice] = useState<number | null>(null)
+  const [supplierMaterial, setSupplierMaterial] = useState<string>("")
+
+  useEffect(() => {
+    const searchMaterial = async () => {
+      const length = Number.parseFloat(countertop.length) || 0
+      const width = Number.parseFloat(countertop.width) || 0
+      const thickness = Number.parseInt(countertop.thickness) || 40
+
+      if (length === 0 || width === 0) {
+        setSupplierPrice(null)
+        return
+      }
+
+      try {
+        const response = await fetch("/api/suppliers/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wood: "Дуб",
+            thickness,
+            width,
+            length,
+            shieldType: countertop.type === "solid-lamella" ? "Цельноламельный" : "Сращенный",
+          }),
+        })
+
+        const data = await response.json()
+        if (data.exactMatch) {
+          setSupplierPrice(data.exactMatch.price)
+          setSupplierMaterial(`${data.exactMatch.supplierName} - ${data.exactMatch.material.shieldType}`)
+        } else if (data.closestMatch) {
+          setSupplierPrice(data.closestMatch.price)
+          setSupplierMaterial(
+            `${data.closestMatch.supplierName} - ${data.closestMatch.material.shieldType} (ближайший)`,
+          )
+        } else {
+          setSupplierPrice(null)
+          setSupplierMaterial("")
+        }
+      } catch (error) {
+        console.error("Error searching materials:", error)
+      }
+    }
+
+    searchMaterial()
+  }, [countertop.length, countertop.width, countertop.thickness, countertop.type])
 
   const calculatePrice = () => {
     const length = Number.parseFloat(countertop.length) || 0
@@ -128,9 +176,15 @@ export function NewCountertopItem({ countertop, index, onUpdate, onRemove, prici
             {index + 1}
           </div>
           <h3 className="font-semibold text-lg">Столешница #{index + 1}</h3>
-          {price > 0 && (
-            <span className="ml-auto text-lg font-bold text-accent">{price.toLocaleString("ru-RU")} ₽</span>
-          )}
+          <div className="ml-auto text-right">
+            {supplierPrice && (
+              <div className="text-sm text-muted-foreground">
+                Закупка: {supplierPrice.toLocaleString("ru-RU")} ₽
+                {supplierMaterial && <div className="text-xs">{supplierMaterial}</div>}
+              </div>
+            )}
+            {price > 0 && <span className="text-lg font-bold text-accent">{price.toLocaleString("ru-RU")} ₽</span>}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
