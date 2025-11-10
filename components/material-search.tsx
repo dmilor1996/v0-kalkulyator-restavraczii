@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,11 +28,7 @@ export function MaterialSearch() {
     thicknesses: number[]
   }>({ woods: [], shieldTypes: [], grades: [], thicknesses: [] })
 
-  useEffect(() => {
-    loadSuppliers()
-  }, [])
-
-  const loadSuppliers = async () => {
+  const loadSuppliers = useCallback(async () => {
     try {
       const res = await fetch("/api/suppliers")
       const data = await res.json()
@@ -62,38 +58,45 @@ export function MaterialSearch() {
     } catch (error) {
       console.error("Error loading suppliers:", error)
     }
-  }
+  }, [])
 
-  const handleSearch = async (includeSmaller = false) => {
-    if (!length || !width) return
+  useEffect(() => {
+    loadSuppliers()
+  }, [loadSuppliers])
 
-    setIsLoading(true)
+  const handleSearch = useCallback(
+    async (includeSmaller = false) => {
+      if (!length || !width) return
 
-    try {
-      const res = await fetch("/api/suppliers/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      setIsLoading(true)
+
+      try {
+        const res = await fetch("/api/suppliers/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-          length: Number.parseInt(length),
-          width: Number.parseInt(width),
-          thickness: thickness.length > 0 ? thickness : undefined,
-          wood: wood.length > 0 ? wood : undefined,
-          shieldType: shieldType.length > 0 ? shieldType : undefined,
-          grade: grade.length > 0 ? grade : undefined,
-          showSmaller: includeSmaller,
-        }),
-      })
+            length: Number.parseInt(length),
+            width: Number.parseInt(width),
+            thickness: thickness.length > 0 ? thickness : undefined,
+            wood: wood.length > 0 ? wood : undefined,
+            shieldType: shieldType.length > 0 ? shieldType : undefined,
+            grade: grade.length > 0 ? grade : undefined,
+            showSmaller: includeSmaller,
+          }),
+        })
 
-      const data = await res.json()
-      setResults(data)
-    } catch (error) {
-      console.error("Error searching materials:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+        const data = await res.json()
+        setResults(data)
+      } catch (error) {
+        console.error("Error searching materials:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [length, width, thickness, wood, shieldType, grade],
+  )
 
-  const getMatchLabel = (matchType: string) => {
+  const getMatchLabel = useCallback((matchType: string) => {
     switch (matchType) {
       case "exact":
         return "✓ Точное совпадение"
@@ -104,7 +107,7 @@ export function MaterialSearch() {
       default:
         return ""
     }
-  }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -143,96 +146,76 @@ export function MaterialSearch() {
             <div className="space-y-2">
               <Label>Толщина (мм)</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
-                {availableOptions.thicknesses.map((t) => (
-                  <div key={t} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`thickness-${t}`}
-                      checked={thickness.includes(t)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setThickness([...thickness, t])
-                        } else {
-                          setThickness(thickness.filter((th) => th !== t))
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`thickness-${t}`} className="text-sm font-normal cursor-pointer">
-                      {t} мм
-                    </Label>
-                  </div>
-                ))}
+                {availableOptions.thicknesses.map((t) => {
+                  const handleChange = (checked: boolean) => {
+                    setThickness((prev) => (checked ? [...prev, t] : prev.filter((th) => th !== t)))
+                  }
+                  return (
+                    <div key={t} className="flex items-center space-x-2">
+                      <Checkbox id={`thickness-${t}`} checked={thickness.includes(t)} onCheckedChange={handleChange} />
+                      <Label htmlFor={`thickness-${t}`} className="text-sm font-normal cursor-pointer">
+                        {t} мм
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Порода</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
-                {availableOptions.woods.map((w) => (
-                  <div key={w} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`wood-${w}`}
-                      checked={wood.includes(w)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setWood([...wood, w])
-                        } else {
-                          setWood(wood.filter((wo) => wo !== w))
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`wood-${w}`} className="text-sm font-normal cursor-pointer">
-                      {w}
-                    </Label>
-                  </div>
-                ))}
+                {availableOptions.woods.map((w) => {
+                  const handleChange = (checked: boolean) => {
+                    setWood((prev) => (checked ? [...prev, w] : prev.filter((wo) => wo !== w)))
+                  }
+                  return (
+                    <div key={w} className="flex items-center space-x-2">
+                      <Checkbox id={`wood-${w}`} checked={wood.includes(w)} onCheckedChange={handleChange} />
+                      <Label htmlFor={`wood-${w}`} className="text-sm font-normal cursor-pointer">
+                        {w}
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Тип щита</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
-                {availableOptions.shieldTypes.map((st) => (
-                  <div key={st} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`shieldType-${st}`}
-                      checked={shieldType.includes(st)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setShieldType([...shieldType, st])
-                        } else {
-                          setShieldType(shieldType.filter((s) => s !== st))
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`shieldType-${st}`} className="text-sm font-normal cursor-pointer">
-                      {st}
-                    </Label>
-                  </div>
-                ))}
+                {availableOptions.shieldTypes.map((st) => {
+                  const handleChange = (checked: boolean) => {
+                    setShieldType((prev) => (checked ? [...prev, st] : prev.filter((s) => s !== st)))
+                  }
+                  return (
+                    <div key={st} className="flex items-center space-x-2">
+                      <Checkbox id={`shieldType-${st}`} checked={shieldType.includes(st)} onCheckedChange={handleChange} />
+                      <Label htmlFor={`shieldType-${st}`} className="text-sm font-normal cursor-pointer">
+                        {st}
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Сорт</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
-                {availableOptions.grades.map((g) => (
-                  <div key={g} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`grade-${g}`}
-                      checked={grade.includes(g)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setGrade([...grade, g])
-                        } else {
-                          setGrade(grade.filter((gr) => gr !== g))
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`grade-${g}`} className="text-sm font-normal cursor-pointer">
-                      {g}
-                    </Label>
-                  </div>
-                ))}
+                {availableOptions.grades.map((g) => {
+                  const handleChange = (checked: boolean) => {
+                    setGrade((prev) => (checked ? [...prev, g] : prev.filter((gr) => gr !== g)))
+                  }
+                  return (
+                    <div key={g} className="flex items-center space-x-2">
+                      <Checkbox id={`grade-${g}`} checked={grade.includes(g)} onCheckedChange={handleChange} />
+                      <Label htmlFor={`grade-${g}`} className="text-sm font-normal cursor-pointer">
+                        {g}
+                      </Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>

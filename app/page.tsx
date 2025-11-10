@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { MaterialSearch } from "@/components/material-search"
 import { RestorationCalculator } from "@/components/restoration-calculator"
 import { NewCountertopCalculator } from "@/components/new-countertop-calculator"
@@ -11,20 +11,29 @@ import { MessageCircle, Phone } from "lucide-react"
 import type { SavedCalculation } from "@/lib/storage"
 import type { PricingConfig } from "@/lib/pricing-types"
 
+interface Countertop {
+  length: string
+  width: string
+  thickness: string
+  type: string
+  [key: string]: any
+}
+
 export default function Home() {
-  const [restorationCountertops, setRestorationCountertops] = useState<any[]>([])
-  const [newCountertops, setNewCountertops] = useState<any[]>([])
+  const [restorationCountertops, setRestorationCountertops] = useState<Countertop[]>([])
+  const [newCountertops, setNewCountertops] = useState<Countertop[]>([])
   const [mounted, setMounted] = useState(false)
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [clickCount, setClickCount] = useState(0)
   const [pricing, setPricing] = useState<PricingConfig | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     setMounted(true)
     loadPricing()
   }, [])
 
-  const loadPricing = async () => {
+  const loadPricing = useCallback(async () => {
     try {
       const response = await fetch("/api/pricing")
       const data = await response.json()
@@ -32,24 +41,31 @@ export default function Home() {
     } catch (error) {
       console.error("Error loading pricing:", error)
     }
-  }
+  }, [])
 
-  const handleLoadCalculation = (calc: SavedCalculation) => {
+  const handleLoadCalculation = useCallback((calc: SavedCalculation) => {
     setRestorationCountertops(calc.restorationCountertops)
     setNewCountertops(calc.newCountertops)
     window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+  }, [])
 
-  const handleTitleClick = () => {
-    setClickCount((prev) => prev + 1)
+  const handleTitleClick = useCallback(() => {
+    setClickCount((prev) => {
+      const newCount = prev + 1
+      if (newCount === 3) {
+        setShowAdminPanel(true)
+        return 0
+      }
+      return newCount
+    })
 
-    if (clickCount + 1 === 3) {
-      setShowAdminPanel(true)
-      setClickCount(0)
+    // Очищаем предыдущий timeout, если он есть
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
     }
-
-    setTimeout(() => setClickCount(0), 1000)
-  }
+    // Устанавливаем новый timeout
+    timeoutRef.current = setTimeout(() => setClickCount(0), 1000)
+  }, [])
 
   if (!mounted) {
     return null

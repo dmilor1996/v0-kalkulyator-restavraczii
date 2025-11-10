@@ -8,35 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { X, Save, Loader2 } from "lucide-react"
 import { DEFAULT_PRICING, type PricingConfig, type MaterialPrice, type LengthRange } from "@/lib/pricing-types"
+import { mergePricingWithDefaults } from "@/lib/pricing-utils"
+import { type Supplier } from "@/lib/supplier-types"
 import { Plus, Trash2, Copy } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Функция для слияния pricing с дефолтными значениями
-function mergePricingWithDefaults(pricing: PricingConfig | null): PricingConfig {
-  if (!pricing) return DEFAULT_PRICING
-
-  return {
-    ...DEFAULT_PRICING,
-    ...pricing,
-    restoration: {
-      ...DEFAULT_PRICING.restoration,
-      ...(pricing.restoration || {}),
-    },
-    newCountertop: {
-      ...DEFAULT_PRICING.newCountertop,
-      ...(pricing.newCountertop || {}),
-      solid20mm: {
-        ...DEFAULT_PRICING.newCountertop.solid20mm,
-        ...(pricing.newCountertop?.solid20mm || {}),
-      },
-      solid40mm: {
-        ...DEFAULT_PRICING.newCountertop.solid40mm,
-        ...(pricing.newCountertop?.solid40mm || {}),
-      },
-    },
-    materialPrices: pricing.materialPrices || DEFAULT_PRICING.materialPrices,
-  }
-}
 import { SupplierAdmin } from "./supplier-admin"
 
 interface AdminPanelProps {
@@ -52,7 +27,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [loginError, setLoginError] = useState("")
   const [message, setMessage] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
-  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [newMaterialPrice, setNewMaterialPrice] = useState<Partial<MaterialPrice>>({
     pricePerM2: [],
   })
@@ -292,8 +267,8 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     const grades = new Set<string>()
     const thicknesses = new Set<number>()
 
-    suppliers.forEach((supplier: any) => {
-      supplier.materials?.forEach((material: any) => {
+    suppliers.forEach((supplier: Supplier) => {
+      supplier.materials?.forEach((material) => {
         if (material.wood) woods.add(material.wood)
         if (material.shieldType) shieldTypes.add(material.shieldType)
         if (material.grade) grades.add(material.grade)

@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis"
 import { NextResponse } from "next/server"
 import { type Supplier, type SearchParams, type SearchResult } from "@/lib/supplier-types"
 import { type PricingConfig, DEFAULT_PRICING, type MaterialPrice } from "@/lib/pricing-types"
+import { mergePricingWithDefaults } from "@/lib/pricing-utils"
 
 const redis = new Redis({
   url: process.env.UPSTASH_KV_KV_REST_API_URL!,
@@ -11,45 +12,29 @@ const redis = new Redis({
 const SUPPLIERS_KEY = "suppliers"
 const PRICING_KEY = "countertop_pricing"
 
-function mergePricingWithDefaults(pricing: PricingConfig | null): PricingConfig {
-  if (!pricing) return DEFAULT_PRICING
-
-  return {
-    ...DEFAULT_PRICING,
-    ...pricing,
-    restoration: {
-      ...DEFAULT_PRICING.restoration,
-      ...(pricing.restoration || {}),
-    },
-    newCountertop: {
-      ...DEFAULT_PRICING.newCountertop,
-      ...(pricing.newCountertop || {}),
-      solid20mm: {
-        ...DEFAULT_PRICING.newCountertop.solid20mm,
-        ...(pricing.newCountertop?.solid20mm || {}),
-      },
-      solid40mm: {
-        ...DEFAULT_PRICING.newCountertop.solid40mm,
-        ...(pricing.newCountertop?.solid40mm || {}),
-      },
-    },
-    materialPrices: pricing.materialPrices || DEFAULT_PRICING.materialPrices,
+// Создать Map для быстрого поиска цен материалов
+function createMaterialPriceMap(materialPrices: MaterialPrice[]): Map<string, MaterialPrice> {
+  const map = new Map<string, MaterialPrice>()
+  for (const mp of materialPrices) {
+    // Ключ: wood|shieldType|thickness|grade (или без grade)
+    const keyWithGrade = `${mp.wood}|${mp.shieldType}|${mp.thickness}|${mp.grade || ""}`
+    const keyWithoutGrade = `${mp.wood}|${mp.shieldType}|${mp.thickness}|`
+    map.set(keyWithGrade, mp)
+    if (!mp.grade) {
+      map.set(keyWithoutGrade, mp)
+    }
   }
+  return map
 }
 
-// Найти цену за м² для материала с учетом длины
+// Найти цену за м² для материала с учетом длины (оптимизированная версия с Map)
 function findMaterialPrice(
   material: { wood: string; shieldType: string; thickness: number; length: number; grade?: string },
-  materialPrices: MaterialPrice[],
+  materialPriceMap: Map<string, MaterialPrice>,
 ): { pricePerM2: number | null; purchasePrice: number } {
   // Ищем точное совпадение: порода + тип + толщина + сорт (если указан)
-  const exactMatch = materialPrices.find(
-    (mp) =>
-      mp.wood === material.wood &&
-      mp.shieldType === material.shieldType &&
-      mp.thickness === material.thickness &&
-      (material.grade ? mp.grade === material.grade : !mp.grade),
-  )
+  const keyWithGrade = `${material.wood}|${material.shieldType}|${material.thickness}|${material.grade || ""}`
+  const exactMatch = materialPriceMap.get(keyWithGrade)
 
   if (exactMatch) {
     // Если цена задана диапазонами
@@ -68,9 +53,8 @@ function findMaterialPrice(
 
   // Если сорт не указан, ищем без учета сорта
   if (material.grade) {
-    const matchWithoutGrade = materialPrices.find(
-      (mp) => mp.wood === material.wood && mp.shieldType === material.shieldType && mp.thickness === material.thickness && !mp.grade,
-    )
+    const keyWithoutGrade = `${material.wood}|${material.shieldType}|${material.thickness}|`
+    const matchWithoutGrade = materialPriceMap.get(keyWithoutGrade)
     if (matchWithoutGrade) {
       if (Array.isArray(matchWithoutGrade.pricePerM2)) {
         const matchingRange = matchWithoutGrade.pricePerM2.find(
@@ -88,17 +72,47 @@ function findMaterialPrice(
   return { pricePerM2: null, purchasePrice: 0 }
 }
 
+// Константа для сортировки по типу совпадения
+const MATCH_TYPE_ORDER = { exact: 0, larger: 1, smaller: 2 } as const
+
+// Функция сортировки кандидатов
+function sortCandidates(
+  a: { markup: number; sellPrice: number; matchType: "exact" | "smaller" | "larger"; lengthDiff: number; widthDiff: number },
+  b: { markup: number; sellPrice: number; matchType: "exact" | "smaller" | "larger"; lengthDiff: number; widthDiff: number },
+): number {
+  // 1. По марже (наценке) - от большей к меньшей
+  if (a.markup !== b.markup) {
+    return b.markup - a.markup
+  }
+  // 2. По конечной цене - от меньшей к большей
+  if (a.sellPrice !== b.sellPrice) {
+    if (a.sellPrice === 0) return 1 // Материалы без цены в конец
+    if (b.sellPrice === 0) return -1
+    return a.sellPrice - b.sellPrice
+  }
+  // 3. По типу совпадения (exact > larger > smaller)
+  if (MATCH_TYPE_ORDER[a.matchType] !== MATCH_TYPE_ORDER[b.matchType]) {
+    return MATCH_TYPE_ORDER[a.matchType] - MATCH_TYPE_ORDER[b.matchType]
+  }
+  // 4. По разнице длины (ближайшие по длине)
+  if (a.lengthDiff !== b.lengthDiff) {
+    return a.lengthDiff - b.lengthDiff
+  }
+  // 5. По разнице ширины
+  return a.widthDiff - b.widthDiff
+}
+
 // Рассчитать цену продажи на основе цены за м² (используя размеры из поиска, а не размеры материала)
 function calcSellPrice(
   searchLength: number,
   searchWidth: number,
   material: { wood: string; shieldType: string; thickness: number; grade?: string; price: number },
-  materialPrices: MaterialPrice[],
+  materialPriceMap: Map<string, MaterialPrice>,
 ): { sellPrice: number; pricePerM2: number | null; markup: number } {
   const areaM2 = (searchLength * searchWidth) / 1000000 // Переводим мм² в м² (используем размеры из поиска)
   const { pricePerM2 } = findMaterialPrice(
     { ...material, length: searchLength },
-    materialPrices,
+    materialPriceMap,
   )
 
   if (pricePerM2) {
@@ -128,6 +142,9 @@ export async function POST(request: Request) {
     const suppliers = (await redis.get<Supplier[]>(SUPPLIERS_KEY)) || []
     const pricingRaw = await redis.get<PricingConfig>(PRICING_KEY)
     const pricing = mergePricingWithDefaults(pricingRaw)
+
+    // Создаем Map для быстрого поиска цен материалов
+    const materialPriceMap = createMaterialPriceMap(pricing.materialPrices)
 
     const results: SearchResult[] = []
 
@@ -228,7 +245,7 @@ export async function POST(request: Request) {
             grade: material.grade,
             price: material.price,
           },
-          pricing.materialPrices,
+          materialPriceMap,
         )
         allCandidates.push({
           material,
@@ -253,7 +270,7 @@ export async function POST(request: Request) {
             grade: material.grade,
             price: material.price,
           },
-          pricing.materialPrices,
+          materialPriceMap,
         )
         const lengthDiff = material.length - searchParams.length
         const widthDiff = Math.abs(material.width - searchParams.width)
@@ -281,7 +298,7 @@ export async function POST(request: Request) {
               grade: material.grade,
               price: material.price,
             },
-            pricing.materialPrices,
+            materialPriceMap,
           )
           const lengthDiff = searchParams.length - material.length
           const widthDiff = Math.abs(material.width - searchParams.width)
@@ -310,7 +327,7 @@ export async function POST(request: Request) {
               grade: material.grade,
               price: material.price,
             },
-            pricing.materialPrices,
+            materialPriceMap,
           )
           const lengthDiff = Math.abs(material.length - searchParams.length)
           const widthDiff = Math.abs(material.width - searchParams.width)
@@ -332,33 +349,8 @@ export async function POST(request: Request) {
         })
       }
 
-      // Сортируем кандидатов по приоритету:
-      // 1. Сначала по марже (наценке) - от большей к меньшей
-      // 2. Затем по конечной цене - от меньшей к большей
-      // 3. Затем по размеру - сначала больший (exact > larger > smaller), затем по разнице длины, затем по разнице ширины
-      allCandidates.sort((a, b) => {
-        // 1. По марже (наценке) - от большей к меньшей
-        if (a.markup !== b.markup) {
-          return b.markup - a.markup
-        }
-        // 2. По конечной цене - от меньшей к большей
-        if (a.sellPrice !== b.sellPrice) {
-          if (a.sellPrice === 0) return 1 // Материалы без цены в конец
-          if (b.sellPrice === 0) return -1
-          return a.sellPrice - b.sellPrice
-        }
-        // 3. По типу совпадения (exact > larger > smaller)
-        const matchTypeOrder = { exact: 0, larger: 1, smaller: 2 }
-        if (matchTypeOrder[a.matchType] !== matchTypeOrder[b.matchType]) {
-          return matchTypeOrder[a.matchType] - matchTypeOrder[b.matchType]
-        }
-        // 4. По разнице длины (ближайшие по длине)
-        if (a.lengthDiff !== b.lengthDiff) {
-          return a.lengthDiff - b.lengthDiff
-        }
-        // 5. По разнице ширины
-        return a.widthDiff - b.widthDiff
-      })
+      // Сортируем кандидатов по приоритету
+      allCandidates.sort(sortCandidates)
 
       // Берём лучший результат от каждого поставщика (хотя бы 1)
       const bestResult = allCandidates[0]
@@ -375,25 +367,25 @@ export async function POST(request: Request) {
       }
     }
 
-    // Сортируем результаты по приоритету:
-    // 1. Сначала по марже (наценке) - от большей к меньшей
-    // 2. Затем по конечной цене - от меньшей к большей
-    // 3. Затем по размеру - сначала больший
-    results.sort((a, b) => {
-      // 1. По марже (наценке) - от большей к меньшей
-      if (a.markup !== b.markup) {
-        return b.markup - a.markup
-      }
-      // 2. По конечной цене - от меньшей к большей
-      if (a.sellPrice !== b.sellPrice) {
-        if (a.sellPrice === 0) return 1 // Материалы без цены в конец
-        if (b.sellPrice === 0) return -1
-        return a.sellPrice - b.sellPrice
-      }
-      // 3. По типу совпадения (exact > larger > smaller)
-      const matchTypeOrder = { exact: 0, larger: 1, smaller: 2 }
-      return matchTypeOrder[a.matchType] - matchTypeOrder[b.matchType]
-    })
+    // Сортируем результаты по приоритету (используем ту же функцию сортировки)
+    results.sort((a, b) =>
+      sortCandidates(
+        {
+          markup: a.markup,
+          sellPrice: a.sellPrice,
+          matchType: a.matchType,
+          lengthDiff: 0,
+          widthDiff: 0,
+        },
+        {
+          markup: b.markup,
+          sellPrice: b.sellPrice,
+          matchType: b.matchType,
+          lengthDiff: 0,
+          widthDiff: 0,
+        },
+      ),
+    )
 
     return NextResponse.json(results)
   } catch (error) {
