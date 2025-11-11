@@ -162,6 +162,8 @@ export function TotalSummary({ restorationCountertops, newCountertops, pricing }
     return Math.min((totalArea / 3) * 100, 100)
   }, [totalArea])
 
+  const isEmpty = subtotal === 0
+
   const handleCalculate = () => {
     if (mounted && finalTotal > 0) {
       setIsCalculated(true)
@@ -451,92 +453,124 @@ export function TotalSummary({ restorationCountertops, newCountertops, pricing }
     }
   }
 
-  if (subtotal === 0) {
-    return null
+  const scrollToSearch = () => {
+    document
+      .getElementById("material-search-section")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   return (
-    <Card className="border-2 border-primary/20 bg-card">
-      <CardHeader>
-        <CardTitle className="text-2xl">Итоговая стоимость</CardTitle>
+    <Card className="card-shadow border-primary/20 bg-gradient-to-br from-card to-primary/5 animate-fade-in hover:card-shadow-hover transition-all duration-300">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Итоговая стоимость
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-3">
-          {restorationTotal > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Реставрация столешниц:</span>
-              <span className="font-semibold text-lg">{restorationTotal.toLocaleString("ru-RU")} ₽</span>
-            </div>
-          )}
-
-          {newTotal > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Изготовление столешниц:</span>
-              <span className="font-semibold text-lg">{newTotal.toLocaleString("ru-RU")} ₽</span>
-            </div>
-          )}
-
-          <Separator />
-
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Общая площадь:</span>
-            <span className="font-semibold">{totalArea.toFixed(2)} м²</span>
+      <CardContent className="space-y-5">
+        {isEmpty ? (
+          <div className="space-y-4 text-center text-muted-foreground">
+            <p className="text-base font-medium text-foreground/80">Нет активных расчётов</p>
+            <p className="text-sm text-muted-foreground">
+              Воспользуйтесь поиском материалов или добавьте столешницу в калькулятор, чтобы увидеть итоговую стоимость.
+            </p>
+            <Button
+              variant="outline"
+              onClick={scrollToSearch}
+              className="mx-auto w-full sm:w-auto border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+            >
+              Перейти к поиску
+            </Button>
           </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {restorationTotal > 0 && (
+                <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/30">
+                  <span className="text-muted-foreground font-medium">Реставрация столешниц:</span>
+                  <span className="font-bold text-lg text-foreground">{restorationTotal.toLocaleString("ru-RU")} ₽</span>
+                </div>
+              )}
 
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Промежуточная сумма:</span>
-            <span className="font-semibold text-lg">{subtotal.toLocaleString("ru-RU")} ₽</span>
-          </div>
+              {newTotal > 0 && (
+                <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/30">
+                  <span className="text-muted-foreground font-medium">Изготовление столешниц:</span>
+                  <span className="font-bold text-lg text-foreground">{newTotal.toLocaleString("ru-RU")} ₽</span>
+                </div>
+              )}
 
-          {discountPercent > 0 && (
-            <>
-              <div className="flex justify-between items-center text-accent">
-                <span className="font-medium">Скидка ({discountPercent.toFixed(1)}%):</span>
-                <span className="font-semibold text-lg">-{discountAmount.toLocaleString("ru-RU")} ₽</span>
+              <Separator className="my-4" />
+
+              <div className="flex justify-between items-center p-2.5">
+                <span className="text-muted-foreground">Общая площадь:</span>
+                <span className="font-semibold text-foreground">{totalArea.toFixed(2)} м²</span>
               </div>
 
-              <Separator />
-            </>
-          )}
+              <div className="flex justify-between items-center p-2.5">
+                <span className="text-muted-foreground">Промежуточная сумма:</span>
+                <span className="font-semibold text-lg text-foreground">{subtotal.toLocaleString("ru-RU")} ₽</span>
+              </div>
 
-          <div className="flex justify-between items-center pt-2">
-            <span className="text-xl font-bold">Итого к оплате:</span>
-            <span className="text-3xl font-bold text-accent">{finalTotal.toLocaleString("ru-RU")} ₽</span>
-          </div>
-        </div>
+              {discountPercent > 0 && (
+                <>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-accent/10 border border-accent/20">
+                    <span className="font-semibold text-accent">Скидка ({discountPercent.toFixed(1)}%):</span>
+                    <span className="font-bold text-lg text-accent">-{discountAmount.toLocaleString("ru-RU")} ₽</span>
+                  </div>
 
-        {!isCalculated && (
-          <Button onClick={handleCalculate} className="w-full" size="lg">
-            <Calculator className="h-5 w-5 mr-2" />
-            Рассчитать и сохранить
-          </Button>
-        )}
+                  <Separator className="my-4" />
+                </>
+              )}
 
-        {isCalculated && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button onClick={copyToClipboard} className="w-full bg-transparent" variant="outline">
-              <Copy className="h-4 w-4 mr-2" />
-              {copied ? "Скопировано!" : "Копировать"}
-            </Button>
-
-            <Button onClick={exportToPDF} className="w-full bg-transparent" variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Скачать PDF
-            </Button>
-          </div>
-        )}
-
-        {discountPercent === 0 && totalArea > 0 && totalArea < 3 && (
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Прогресс до скидки</span>
-              <span>{discountProgress.toFixed(0)}%</span>
+              <div className="flex justify-between items-center pt-4 pb-2 px-2 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/20">
+                <span className="text-xl font-bold text-foreground">Итого к оплате:</span>
+                <span className="text-4xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {finalTotal.toLocaleString("ru-RU")} ₽
+                </span>
+              </div>
             </div>
-            <Progress value={discountProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-center">
-              Добавьте ещё {(3 - totalArea).toFixed(2)} м² для получения скидки от 3%
-            </p>
-          </div>
+
+            {!isCalculated && (
+              <Button onClick={handleCalculate} className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 shadow-lg hover:shadow-xl transition-all duration-300" size="lg">
+                <Calculator className="h-5 w-5 mr-2" />
+                Рассчитать и сохранить
+              </Button>
+            )}
+
+            {isCalculated && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  onClick={copyToClipboard}
+                  className="w-full border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  variant="outline"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  {copied ? "Скопировано!" : "Копировать"}
+                </Button>
+
+                <Button
+                  onClick={exportToPDF}
+                  className="w-full border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Скачать PDF
+                </Button>
+              </div>
+            )}
+
+            {discountPercent === 0 && totalArea > 0 && totalArea < 3 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Прогресс до скидки</span>
+                  <span>{discountProgress.toFixed(0)}%</span>
+                </div>
+                <Progress value={discountProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground text-center">
+                  Добавьте ещё {(3 - totalArea).toFixed(2)} м² для получения скидки от 3%
+                </p>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

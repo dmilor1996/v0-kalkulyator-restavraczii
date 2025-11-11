@@ -4,38 +4,38 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Warm beige background inspired by wood */
-  --background: oklch(0.97 0.01 85);
-  --foreground: oklch(0.25 0.02 60);
+  /* Modern soft background with subtle gradient */
+  --background: oklch(0.99 0.005 100);
+  --foreground: oklch(0.15 0.02 250);
 
-  /* Card with slight warmth */
+  /* Modern card with subtle shadow */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.02 60);
+  --card-foreground: oklch(0.15 0.02 250);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.02 60);
+  --popover-foreground: oklch(0.15 0.02 250);
 
-  /* Deep brown primary color */
-  --primary: oklch(0.35 0.05 60);
-  --primary-foreground: oklch(0.98 0.01 85);
+  /* Modern deep blue primary - professional and modern */
+  --primary: oklch(0.45 0.15 250);
+  --primary-foreground: oklch(0.99 0.005 100);
 
-  /* Warm secondary */
-  --secondary: oklch(0.92 0.015 85);
-  --secondary-foreground: oklch(0.35 0.05 60);
+  /* Soft secondary with modern feel */
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: oklch(0.35 0.1 250);
 
-  --muted: oklch(0.94 0.01 85);
-  --muted-foreground: oklch(0.5 0.02 60);
+  --muted: oklch(0.95 0.01 250);
+  --muted-foreground: oklch(0.5 0.05 250);
 
-  /* Warm accent - terracotta/coral */
-  --accent: oklch(0.72 0.15 35);
-  --accent-foreground: oklch(0.98 0.01 85);
+  /* Modern accent - vibrant but professional */
+  --accent: oklch(0.65 0.2 280);
+  --accent-foreground: oklch(0.99 0.005 100);
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.98 0.01 85);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.005 100);
 
-  --border: oklch(0.88 0.01 85);
-  --input: oklch(0.88 0.01 85);
-  --ring: oklch(0.35 0.05 60);
+  --border: oklch(0.92 0.01 250);
+  --input: oklch(0.96 0.01 250);
+  --ring: oklch(0.45 0.15 250);
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -43,7 +43,7 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
-  --radius: 0.75rem;
+  --radius: 1rem;
 
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -142,13 +142,13 @@
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
@@ -156,13 +156,44 @@
     }
   }
 
-  /* Added smooth transitions for interactive elements */
+  /* Modern smooth transitions */
   .smooth-transition {
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Modern hover lift effect */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Modern glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Modern gradient backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, oklch(0.45 0.15 250) 0%, oklch(0.5 0.18 270) 100%);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, oklch(0.65 0.2 280) 0%, oklch(0.7 0.22 300) 100%);
+  }
+
+  /* Modern card shadow */
+  .card-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-shadow-hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 12px 24px rgba(0, 0, 0, 0.12);
   }
 }

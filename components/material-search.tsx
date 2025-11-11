@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Loader2 } from "lucide-react"
+import { Search, Loader2, SlidersHorizontal } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { SearchResult, Supplier } from "@/lib/supplier-types"
 
@@ -27,6 +27,7 @@ export function MaterialSearch() {
     grades: string[]
     thicknesses: number[]
   }>({ woods: [], shieldTypes: [], grades: [], thicknesses: [] })
+  const [filtersExpanded, setFiltersExpanded] = useState(true)
 
   const loadSuppliers = useCallback(async () => {
     try {
@@ -63,6 +64,12 @@ export function MaterialSearch() {
   useEffect(() => {
     loadSuppliers()
   }, [loadSuppliers])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setFiltersExpanded(false)
+    }
+  }, [])
 
   const handleSearch = useCallback(
     async (includeSmaller = false) => {
@@ -110,16 +117,36 @@ export function MaterialSearch() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Поиск материала</CardTitle>
-          <CardDescription>Укажите размеры столешницы и выберите параметры (опционально)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+    <div className="space-y-6 animate-fade-in">
+      <Card className="card-shadow border-border/50 hover:card-shadow-hover transition-all duration-300 hover-lift">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <Label htmlFor="length">Длина (мм) *</Label>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Поиск материала
+              </CardTitle>
+              <CardDescription className="text-base mt-2">
+                Укажите размеры столешницы и выберите параметры (опционально)
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFiltersExpanded((prev) => !prev)}
+              className="flex items-center justify-center gap-2 w-full sm:w-auto text-sm text-muted-foreground hover:text-primary"
+              aria-expanded={filtersExpanded}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {filtersExpanded ? "Скрыть фильтры" : "Показать фильтры"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="length" className="text-sm font-semibold">
+                Длина (мм) *
+              </Label>
               <Input
                 id="length"
                 type="number"
@@ -127,10 +154,13 @@ export function MaterialSearch() {
                 onChange={(e) => setLength(e.target.value)}
                 placeholder="2000"
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="h-11 text-base border-border/50 focus:border-primary focus:ring-primary/20 transition-all"
               />
             </div>
-            <div>
-              <Label htmlFor="width">Ширина (мм) *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="width" className="text-sm font-semibold">
+                Ширина (мм) *
+              </Label>
               <Input
                 id="width"
                 type="number"
@@ -138,14 +168,19 @@ export function MaterialSearch() {
                 onChange={(e) => setWidth(e.target.value)}
                 placeholder="600"
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="h-11 text-base border-border/50 focus:border-primary focus:ring-primary/20 transition-all"
               />
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Толщина (мм)</Label>
-              <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+          <div
+            className={`transition-all duration-300 gap-4 ${
+              filtersExpanded ? "grid md:grid-cols-2 lg:grid-cols-4" : "hidden md:grid md:grid-cols-2 lg:grid-cols-4"
+            }`}
+          >
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Толщина (мм)</Label>
+              <div className="border border-border/50 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2.5 bg-card/50 backdrop-blur-sm">
                 {availableOptions.thicknesses.map((t) => {
                   const handleChange = (checked: boolean) => {
                     setThickness((prev) => (checked ? [...prev, t] : prev.filter((th) => th !== t)))
@@ -162,9 +197,9 @@ export function MaterialSearch() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Порода</Label>
-              <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Порода</Label>
+              <div className="border border-border/50 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2.5 bg-card/50 backdrop-blur-sm">
                 {availableOptions.woods.map((w) => {
                   const handleChange = (checked: boolean) => {
                     setWood((prev) => (checked ? [...prev, w] : prev.filter((wo) => wo !== w)))
@@ -181,9 +216,9 @@ export function MaterialSearch() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Тип щита</Label>
-              <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Тип щита</Label>
+              <div className="border border-border/50 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2.5 bg-card/50 backdrop-blur-sm">
                 {availableOptions.shieldTypes.map((st) => {
                   const handleChange = (checked: boolean) => {
                     setShieldType((prev) => (checked ? [...prev, st] : prev.filter((s) => s !== st)))
@@ -200,9 +235,9 @@ export function MaterialSearch() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Сорт</Label>
-              <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Сорт</Label>
+              <div className="border border-border/50 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2.5 bg-card/50 backdrop-blur-sm">
                 {availableOptions.grades.map((g) => {
                   const handleChange = (checked: boolean) => {
                     setGrade((prev) => (checked ? [...prev, g] : prev.filter((gr) => gr !== g)))
@@ -220,15 +255,19 @@ export function MaterialSearch() {
             </div>
           </div>
 
-          <Button onClick={() => handleSearch()} disabled={isLoading || !length || !width} className="w-full">
+          <Button
+            onClick={() => handleSearch()}
+            disabled={isLoading || !length || !width}
+            className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                 Поиск...
               </>
             ) : (
               <>
-                <Search className="h-4 w-4 mr-2" />
+                <Search className="h-5 w-5 mr-2" />
                 Найти материалы
               </>
             )}
@@ -237,12 +276,14 @@ export function MaterialSearch() {
       </Card>
 
       {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
+        <Card className="card-shadow border-border/50 animate-fade-in">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle>Результаты поиска ({results.length})</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Результаты поиска ({results.length})
+                </CardTitle>
+                <CardDescription className="text-sm mt-1.5">
                   Сортировка: сначала по марже (наценке), затем по цене (от меньшей к большей), затем по размеру
                 </CardDescription>
               </div>
@@ -254,6 +295,7 @@ export function MaterialSearch() {
                     setShowSmaller(true)
                     handleSearch(true)
                   }}
+                  className="border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
                 >
                   Показать меньшие размеры
                 </Button>
@@ -261,56 +303,76 @@ export function MaterialSearch() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {results.map((result, idx) => (
-                <Card key={idx} className="p-4 border-l-4 border-l-primary">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-lg">{result.supplier}</span>
+                <Card
+                  key={idx}
+                  className="p-5 border-l-4 border-l-primary card-shadow hover:card-shadow-hover transition-all duration-300 hover-lift bg-gradient-to-r from-card to-card/50"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-5">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="font-bold text-xl text-foreground">{result.supplier}</span>
                         <span
-                          className={`text-xs px-2 py-1 rounded font-medium ${
+                          className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm ${
                             result.matchType === "exact"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                               : result.matchType === "smaller"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                           }`}
                         >
                           {getMatchLabel(result.matchType)}
                         </span>
                       </div>
 
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <div>
-                          <span className="font-medium">Порода:</span> {result.material.wood} •{" "}
-                          <span className="font-medium">Тип:</span> {result.material.shieldType} •{" "}
-                          <span className="font-medium">Сорт:</span> {result.material.grade}
+                      <div className="text-sm text-muted-foreground space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">Порода:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-secondary/50">{result.material.wood}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="font-semibold text-foreground">Тип:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-secondary/50">{result.material.shieldType}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="font-semibold text-foreground">Сорт:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-secondary/50">{result.material.grade}</span>
                         </div>
-                        <div>
-                          <span className="font-medium">Размер:</span> {result.material.length} × {result.material.width} ×{" "}
-                          {result.material.thickness} мм
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">Размер:</span>
+                          <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary font-medium">
+                            {result.material.length} × {result.material.width} × {result.material.thickness} мм
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right space-y-1">
-                      <div className="text-sm text-muted-foreground">Закупка:</div>
-                      <div className="text-lg font-semibold line-through text-muted-foreground">{result.material.price.toLocaleString("ru-RU")} ₽</div>
+                    <div className="text-right space-y-2 min-w-[180px]">
+                      <div className="text-xs text-muted-foreground/80 uppercase tracking-wide">Закупка</div>
+                      <div className="text-base font-semibold line-through text-muted-foreground">
+                        {result.material.price.toLocaleString("ru-RU")} ₽
+                      </div>
                       {result.sellPrice > 0 ? (
                         <>
-                          <div className="text-sm text-muted-foreground">Продажа:</div>
-                          <div className="text-2xl font-bold text-primary">{result.sellPrice.toLocaleString("ru-RU")} ₽</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground/80 uppercase tracking-wide mt-3">Продажа</div>
+                          <div className="text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                            {result.sellPrice.toLocaleString("ru-RU")} ₽
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
                             {((result.material.length * result.material.width) / 1000000).toFixed(2)} м²
-                            {result.pricePerM2 && ` • ${result.pricePerM2.toLocaleString("ru-RU")} ₽/м²`}
+                            {result.pricePerM2 && (
+                              <span className="ml-1.5 px-2 py-0.5 rounded-md bg-accent/10 text-accent font-medium">
+                                {result.pricePerM2.toLocaleString("ru-RU")} ₽/м²
+                              </span>
+                            )}
                           </div>
                           {result.markup > 0 && (
-                            <div className="text-xs font-medium text-green-600 dark:text-green-400">+{result.markup}%</div>
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                              <span>+{result.markup}%</span>
+                            </div>
                           )}
                         </>
                       ) : (
-                        <div className="text-sm text-muted-foreground">Цена за м² не задана</div>
+                        <div className="text-sm text-muted-foreground italic">Цена за м² не задана</div>
                       )}
                     </div>
                   </div>
@@ -322,9 +384,12 @@ export function MaterialSearch() {
       )}
 
       {!isLoading && results.length === 0 && length && width && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Материалы не найдены. Попробуйте изменить параметры поиска.
+        <Card className="card-shadow border-border/50 animate-fade-in">
+          <CardContent className="py-12 text-center">
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-lg">Материалы не найдены</p>
+              <p className="text-sm text-muted-foreground/80">Попробуйте изменить параметры поиска</p>
+            </div>
           </CardContent>
         </Card>
       )}

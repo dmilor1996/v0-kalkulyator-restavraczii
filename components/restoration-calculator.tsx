@@ -57,10 +57,12 @@ export function RestorationCalculator({ countertops, setCountertops, pricing }: 
   }
 
   return (
-    <Card className="border-2">
-      <CardHeader>
-        <CardTitle className="text-2xl">Реставрация столешниц</CardTitle>
-        <CardDescription className="text-base">
+    <Card className="card-shadow border-border/50 hover:card-shadow-hover transition-all duration-300 animate-fade-in">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Реставрация столешниц
+        </CardTitle>
+        <CardDescription className="text-base mt-2">
           Добавьте столешницы для реставрации и выберите параметры обработки
         </CardDescription>
       </CardHeader>
@@ -81,18 +83,18 @@ export function RestorationCalculator({ countertops, setCountertops, pricing }: 
           </div>
         ))}
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             onClick={addCountertop}
             variant="outline"
-            className="flex-1 border-2 border-dashed hover:border-primary hover:bg-secondary bg-transparent animate-in fade-in duration-300"
+            className="flex-1 border-2 border-dashed border-border/50 hover:border-primary/50 hover:bg-primary/5 bg-transparent transition-all duration-300 hover-lift"
           >
             <Plus className="mr-2 h-5 w-5" />
             Добавить столешницу
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="animate-in fade-in duration-300">
+              <Button variant="outline" className="border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all">
                 <Copy className="mr-2 h-5 w-5" />
                 Несколько
               </Button>

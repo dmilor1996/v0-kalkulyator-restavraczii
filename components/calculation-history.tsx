@@ -40,31 +40,33 @@ export function CalculationHistory({ onLoad }: CalculationHistoryProps) {
   }
 
   return (
-    <Card className="bg-secondary/30">
-      <CardHeader className="cursor-pointer" onClick={handleToggle}>
+    <Card className="card-shadow border-border/50 bg-secondary/20 hover:card-shadow-hover transition-all duration-300 animate-fade-in">
+      <CardHeader className="cursor-pointer pb-4" onClick={handleToggle}>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+          <CardTitle className="text-lg font-bold flex items-center gap-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <Clock className="h-5 w-5 text-primary" />
             История расчетов ({calculations.length})
           </CardTitle>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 transition-all">
             {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
       </CardHeader>
       {isOpen && (
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {calculations.map((calc) => (
             <div
               key={calc.id}
-              className="flex items-center justify-between p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors"
+              className="flex items-center justify-between p-4 bg-card rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover-lift card-shadow"
             >
               <button
                 onClick={() => handleLoad(calc)}
                 className="flex-1 text-left hover:text-primary transition-colors"
               >
-                <div className="font-medium">{calc.total.toLocaleString("ru-RU")} ₽</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {calc.total.toLocaleString("ru-RU")} ₽
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
                   {new Date(calc.timestamp).toLocaleString("ru-RU", {
                     day: "2-digit",
                     month: "2-digit",
@@ -77,7 +79,7 @@ export function CalculationHistory({ onLoad }: CalculationHistoryProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                 onClick={() => handleDelete(calc.id)}
               >
                 <Trash2 className="h-4 w-4" />
